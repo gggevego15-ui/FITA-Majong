@@ -2227,6 +2227,10 @@ class _GardenTile extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
+          splashFactory: NoSplash.splashFactory,
+          overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
           child: Stack(children: [
             Positioned(top: 5, left: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
             Positioned(bottom: 5, right: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
