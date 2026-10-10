@@ -1132,6 +1132,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
+            ),
           ),
           Positioned(
             right: 8,
