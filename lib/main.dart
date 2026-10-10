@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'game/mahjong_rules.dart';
 
 import 'services/auth_service.dart';
 import 'services/progress_store.dart';
@@ -418,24 +419,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return all;
   }
 
-  bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) {
-    if (gone.contains(index)) return false;
-    final spot = layout[index];
-    for (var j = 0; j < layout.length; j++) {
-      if (gone.contains(j) || j == index) continue;
-      final other = layout[j];
-      if (other.layer > spot.layer && other.x == spot.x && other.y == spot.y) {
-        return false;
-      }
-    }
-    final leftBlocked = layout.asMap().entries.any((e) =>
-      !gone.contains(e.key) && e.key != index &&
-      e.value.layer == spot.layer && e.value.y == spot.y && e.value.x == spot.x - 1);
-    final rightBlocked = layout.asMap().entries.any((e) =>
-      !gone.contains(e.key) && e.key != index &&
-      e.value.layer == spot.layer && e.value.y == spot.y && e.value.x == spot.x + 1);
-    return !leftBlocked || !rightBlocked;
-  }
+  bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
+      MahjongRules.isAvailable(index, layout, gone);
 
   List<int>? _solveLayout(List<_TileSpot> layout) {
     final dead = <String>{};
@@ -723,12 +708,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   );
 }
 
-class _TileSpot {
-  final int x;
-  final int y;
-  final int layer;
-  const _TileSpot({required this.x, required this.y, required this.layer});
-}
+typedef _TileSpot = TileSpot;
 
 class _BurstOverlay extends StatefulWidget {
   final bool intense;
@@ -777,6 +757,72 @@ class _BurstPainter extends CustomPainter {
   bool shouldRepaint(covariant _BurstPainter oldDelegate) => oldDelegate.progress != progress;
 }
 
+class _TileArtworkPainter extends CustomPainter {
+  final int seed;
+  final int theme;
+  final bool highlighted;
+  const _TileArtworkPainter({required this.seed, required this.theme, required this.highlighted});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final palettes = <List<Color>>[
+      [const Color(0xFF47765D), const Color(0xFF9DBD76), const Color(0xFFE2B16B), const Color(0xFFD98770)],
+      [const Color(0xFFC14F83), const Color(0xFFEC8D9E), const Color(0xFFFFC96B), const Color(0xFF7656A8)],
+      [const Color(0xFF247F88), const Color(0xFF64C9B8), const Color(0xFF7C8FE8), const Color(0xFFE8C56B)],
+      [const Color(0xFFB8C8FF), const Color(0xFF8D79E6), const Color(0xFF5CE0D0), const Color(0xFFFFD479)],
+    ];
+    final colors = palettes[theme.clamp(0, 3).toInt()];
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.shortestSide * .37;
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.8..strokeCap = StrokeCap.round;
+    final fill = Paint()..style = PaintingStyle.fill;
+    final dark = colors[seed.abs() % colors.length];
+    final accent = colors[(seed.abs() + 1) % colors.length];
+    final secondary = colors[(seed.abs() + 2) % colors.length];
+    // A small illustrated medallion: layered rings, hand-drawn petals, and a stem.
+    paint.color = dark.withOpacity(.9);
+    canvas.drawCircle(center, radius, paint);
+    paint
+      ..color = accent.withOpacity(.85)
+      ..strokeWidth = 1.35;
+    canvas.drawCircle(center, radius * .76, paint);
+    final petals = 5 + seed.abs() % 4;
+    for (var i = 0; i < petals; i++) {
+      final angle = (pi * 2 * i / petals) + (seed % 11) * .04;
+      final petalCenter = center + Offset(cos(angle) * radius * .48, sin(angle) * radius * .48);
+      fill.color = (i.isEven ? accent : secondary).withOpacity(.88);
+      canvas.drawOval(Rect.fromCenter(center: petalCenter, width: radius * .48, height: radius * .30).shift(Offset(cos(angle) * 1.2, sin(angle) * 1.2)), fill);
+    }
+    fill.color = highlighted ? const Color(0xFFFFF0B4) : colors[3];
+    canvas.drawCircle(center, radius * .22, fill);
+    paint
+      ..color = dark
+      ..strokeWidth = 1.5;
+    final stem = Path()
+      ..moveTo(center.dx, center.dy + radius * .22)
+      ..quadraticBezierTo(center.dx - radius * .12, center.dy + radius * .65, center.dx + radius * .06, size.height - 2);
+    canvas.drawPath(stem, paint);
+    for (var side = -1; side <= 1; side += 2) {
+      final y = center.dy + radius * (.48 + (side == 1 ? .25 : 0));
+      final leafPath = Path()
+        ..moveTo(center.dx, y)
+        ..quadraticBezierTo(center.dx + side * radius * .65, y - radius * .5, center.dx + side * radius * .75, y + radius * .05)
+        ..quadraticBezierTo(center.dx + side * radius * .35, y + radius * .35, center.dx, y)
+        ..close();
+      fill.color = secondary.withOpacity(.92);
+      canvas.drawPath(leafPath, fill);
+    }
+    if (highlighted) {
+      paint..color = const Color(0xFFFFD479)..strokeWidth = 1.2;
+      canvas.drawCircle(center, radius + 2.2, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TileArtworkPainter oldDelegate) =>
+      oldDelegate.seed != seed || oldDelegate.theme != theme || oldDelegate.highlighted != highlighted;
+}
+
 class _GardenTile extends StatelessWidget {
   final String symbol;
   final int tileTheme;
@@ -818,9 +864,16 @@ class _GardenTile extends StatelessWidget {
             Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
             Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
             Center(child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 160),
+              duration: Duration(milliseconds: animationLevel == 0 ? 90 : 180),
               transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
-              child: Text(symbol, key: ValueKey(symbol), style: const TextStyle(fontSize: 30)),
+              child: SizedBox(
+                key: ValueKey(symbol),
+                width: 44,
+                height: 48,
+                child: CustomPaint(
+                  painter: _TileArtworkPainter(seed: symbol.runes.fold<int>(0, (sum, rune) => sum + rune), theme: tileTheme, highlighted: selected || hinted),
+                ),
+              ),
             )),
             if (hinted)
               const Positioned(right: 5, top: 4, child: Icon(Icons.auto_awesome_rounded, size: 14, color: leaf)),
