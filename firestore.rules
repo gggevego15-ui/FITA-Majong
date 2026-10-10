@@ -1,10 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Each account may read and write only its own progress document.
     match /users/{userId} {
-      allow read, create, update, delete: if request.auth != null
-        && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'level', 'sound', 'haptics', 'updatedAt', 'schemaVersion'
+        ])
+        && request.resource.data.level is int
+        && request.resource.data.level >= 1
+        && request.resource.data.level <= 10000
+        && request.resource.data.sound is bool
+        && request.resource.data.haptics is bool
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.updatedAt == request.time;
     }
   }
 }
