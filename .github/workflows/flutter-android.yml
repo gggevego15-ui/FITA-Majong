@@ -18,7 +18,28 @@ jobs:
           flutter create /tmp/fita_native --project-name fita_mahjong --platforms=android,ios
           cp -R /tmp/fita_native/android ./android
       - run: flutter pub get
-      - run: flutter build apk --release
+      - name: Build Android APK
+        env:
+          FITA_FIREBASE_PROJECT_ID: ${{ vars.FITA_FIREBASE_PROJECT_ID }}
+          FITA_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.FITA_FIREBASE_MESSAGING_SENDER_ID }}
+          FITA_FIREBASE_ANDROID_API_KEY: ${{ vars.FITA_FIREBASE_ANDROID_API_KEY }}
+          FITA_FIREBASE_ANDROID_APP_ID: ${{ vars.FITA_FIREBASE_ANDROID_APP_ID }}
+          FITA_FIREBASE_IOS_API_KEY: ${{ vars.FITA_FIREBASE_IOS_API_KEY }}
+          FITA_FIREBASE_IOS_APP_ID: ${{ vars.FITA_FIREBASE_IOS_APP_ID }}
+          FITA_IOS_BUNDLE_ID: ${{ vars.FITA_IOS_BUNDLE_ID }}
+          FITA_GOOGLE_SERVER_CLIENT_ID: ${{ vars.FITA_GOOGLE_SERVER_CLIENT_ID }}
+          FITA_GOOGLE_IOS_CLIENT_ID: ${{ vars.FITA_GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          flutter build apk --release \
+            --dart-define=FITA_FIREBASE_PROJECT_ID="$FITA_FIREBASE_PROJECT_ID" \
+            --dart-define=FITA_FIREBASE_MESSAGING_SENDER_ID="$FITA_FIREBASE_MESSAGING_SENDER_ID" \
+            --dart-define=FITA_FIREBASE_ANDROID_API_KEY="$FITA_FIREBASE_ANDROID_API_KEY" \
+            --dart-define=FITA_FIREBASE_ANDROID_APP_ID="$FITA_FIREBASE_ANDROID_APP_ID" \
+            --dart-define=FITA_FIREBASE_IOS_API_KEY="$FITA_FIREBASE_IOS_API_KEY" \
+            --dart-define=FITA_FIREBASE_IOS_APP_ID="$FITA_FIREBASE_IOS_APP_ID" \
+            --dart-define=FITA_IOS_BUNDLE_ID="$FITA_IOS_BUNDLE_ID" \
+            --dart-define=FITA_GOOGLE_SERVER_CLIENT_ID="$FITA_GOOGLE_SERVER_CLIENT_ID" \
+            --dart-define=FITA_GOOGLE_IOS_CLIENT_ID="$FITA_GOOGLE_IOS_CLIENT_ID"
       - uses: actions/upload-artifact@v4
         with:
           name: fita-mahjong-android-apk
