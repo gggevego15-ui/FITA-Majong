@@ -1045,7 +1045,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           // Bias toward larger touch targets on phones; the board scrolls when needed.
           final tileWidth = min((constraints.maxWidth - 8) / 8.5, (constraints.maxHeight - 8) / 6.5).clamp(44.0, 76.0).toDouble();
           final tileHeight = tileWidth;
-          return SingleChildScrollView(scrollDirection: Axis.vertical, physics: const ClampingScrollPhysics(), child: SingleChildScrollView(scrollDirection: Axis.horizontal, physics: const ClampingScrollPhysics(), child: SizedBox(
+          // InteractiveViewer supports pinch-to-zoom and panning with one or two fingers.
+          // Keep the board unconstrained so zooming enlarges the actual tile hit targets.
+          return InteractiveViewer(
+            minScale: 0.65,
+            maxScale: 2.5,
+            scaleEnabled: true,
+            panEnabled: true,
+            constrained: false,
+            boundaryMargin: const EdgeInsets.all(80),
+            clipBehavior: Clip.hardEdge,
+            child: SizedBox(
             width: tileWidth * 14.6,
             height: tileHeight * 10.6,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
@@ -1084,7 +1094,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
-          )));
+          ));
         })),
         const SizedBox(height: 10),
         Row(children: [
