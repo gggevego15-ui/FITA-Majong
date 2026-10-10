@@ -8,7 +8,7 @@ This guide configures real Firebase Authentication and Firestore. The source int
 2. Add an Android app using the exact Android application ID used by the generated native project. The current CI workflow generates `com.example.fita_mahjong` as a temporary default. Before production, choose a unique final ID and update the Flutter project-generation command plus the Firebase Android registration together. Record its Firebase **App ID** and API key.
 3. Add an iOS app using a stable reverse-DNS bundle ID, for example `com.example.fitamahjong` (choose your final ID before release). Record its Firebase **App ID** and API key.
 4. In Project settings → General, record the **Project ID** and **Project number** (used as Messaging Sender ID).
-5. The runtime config in `lib/config/firebase_runtime_config.dart` initializes Firebase with platform-specific options. Native `google-services.json` / `GoogleService-Info.plist` files are not required by this particular initialization path, but can be added if you later adopt the standard FlutterFire generated configuration. Do not commit service-account credentials or private keys.
+5. The runtime config in `lib/config/firebase_runtime_config.dart` initializes Firebase with platform-specific options. This source path does not require `google-services.json` or `GoogleService-Info.plist` to initialize Firebase. However, Google Sign-In still needs the OAuth client IDs below, and iOS still needs its reversed-client-ID URL scheme in `ios/Runner/Info.plist`. Do not commit service-account credentials or private keys.
 
 ## 2. Set runtime values locally
 
@@ -31,10 +31,26 @@ In Firebase Console → Authentication → Sign-in method, enable **Anonymous**,
 
 1. Configure the Google provider in Firebase Authentication.
 2. In Google Cloud Console → APIs & Services → Credentials, check the OAuth client IDs created for the Firebase project.
-3. Put the **Web application OAuth client ID** in `FITA_GOOGLE_SERVER_CLIENT_ID`. It must be the client ID, not a client secret.
-4. Put the iOS OAuth client ID in `FITA_GOOGLE_IOS_CLIENT_ID` and confirm its bundle ID matches the registered Firebase iOS app.
-5. Android: configure the Android OAuth client for the exact package name and add the SHA-1 and SHA-256 fingerprints for each signing certificate you use (debug, CI/release, and Play App Signing where applicable). Google sign-in will not be reliable until those fingerprints and client IDs match.
-6. iOS: configure the reversed client-ID URL scheme as required by the Google Sign-In iOS setup. With a Flutter project, verify the URL type in `ios/Runner/Info.plist` and test on a physical device.
+3. Put the **Web application OAuth client ID** in `FITA_GOOGLE_SERVER_CLIENT_ID`. It must end with `.apps.googleusercontent.com`; it is a client ID, not a client secret. The code now stops with a configuration message if this value is missing.
+4. Put the iOS OAuth client ID in `FITA_GOOGLE_IOS_CLIENT_ID` and confirm its bundle ID matches the registered Firebase iOS app. The code now stops with a configuration message if this value is missing on iOS.
+5. Android: create/check an Android OAuth client for the exact package/application ID and add the SHA-1 and SHA-256 fingerprints for every signing certificate used (debug, CI/release, and Play App Signing where applicable). The current CI-generated package ID is `com.example.fita_mahjong`; use a final unique ID before release and register that exact ID. Because this repo passes `serverClientId` in Dart, a `google-services.json` file is not required solely for Google Sign-In; the Web client ID must still be valid. See [Google Sign-In Android setup](https://github.com/flutter/packages/blob/main/packages/google_sign_in/google_sign_in_android/README.md).
+6. iOS: add the reversed iOS client ID as a URL scheme in `ios/Runner/Info.plist`. Even when client IDs are passed from Dart, the URL scheme callback is still required. The plist section must be added inside the existing top-level `dict`; do not create a second `CFBundleURLTypes` key if one already exists:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>REVERSED_IOS_CLIENT_ID_FROM_GOOGLE_CONSOLE</string>
+    </array>
+  </dict>
+</array>
+```
+
+Replace the placeholder with the **REVERSED_CLIENT_ID** value associated with the iOS OAuth client / Firebase iOS app (often shaped like `com.googleusercontent.apps....`). Preserve any existing URL schemes. Test on a physical iOS device.
 
 ### Apple sign-in
 
@@ -62,8 +78,8 @@ Do not deploy public rules such as `allow read, write: if true`. The app stores 
 
 - [ ] App launches without a Firebase config file and guest mode still works locally.
 - [ ] With `firebase.local.json`, anonymous guest sign-in appears in Firebase Authentication.
-- [ ] Google sign-in works on Android with the correct signing SHA fingerprints.
-- [ ] Google sign-in works on iOS with matching OAuth client IDs and URL scheme.
+- [ ] Google sign-in works on Android with the correct application ID, Web client ID, and signing SHA fingerprints.
+- [ ] Google sign-in works on iOS with the iOS client ID, Web client ID, and matching reversed-client-ID URL scheme.
 - [ ] Apple sign-in works on a physical iOS device.
 - [ ] A signed-in user's `users/{uid}` document is created/updated.
 - [ ] A different signed-in UID cannot read or modify that document.
@@ -72,7 +88,7 @@ Do not deploy public rules such as `allow read, write: if true`. The app stores 
 
 ## Current limitations
 
-- No Firebase project or OAuth client credentials have been supplied to this repository, so provider flows and cloud sync are not yet verified.
+- No Firebase project or OAuth client credentials have been supplied to this repository, so provider flows and cloud sync are not yet verified. The Google sign-in code now checks for required client IDs and a non-empty ID token, but that validation is not a substitute for device testing.
 - The local-only guest ID cannot sync to another device until the guest signs into Firebase. If the player chooses an already-existing Google/Apple account instead of linking the anonymous account, cloud progress migration must be handled explicitly.
 - No background retry queue, real-time multi-device conflict resolution, account deletion flow, or automated Firebase Emulator tests are included yet.
 - The Android GitHub Actions workflow passes optional Firebase runtime values into the APK build. To enable this, open **Repository → Settings → Secrets and variables → Actions → Variables** and add the exact names below as repository variables (these are client-side app identifiers, not private keys):
