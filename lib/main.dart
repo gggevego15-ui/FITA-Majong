@@ -1135,44 +1135,55 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
           Positioned(
-            right: 8,
-            top: 8,
-            child: Material(
-              color: cream.withValues(alpha: .96),
-              elevation: 3,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  if (_boardFitMode) {
-                    setState(() => _boardFitMode = false);
-                  } else {
-                    setState(() => _boardFitMode = true);
-                    _fitBoard(
-                      constraints.maxWidth,
-                      constraints.maxHeight,
-                      boardWidth,
-                      boardHeight,
-                    );
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(
-                      _boardFitMode ? Icons.zoom_in_rounded : Icons.fit_screen_rounded,
-                      color: pine,
-                      size: 18,
+            right: 6,
+            top: 6,
+            child: LayoutBuilder(builder: (context, buttonConstraints) {
+              final compact = constraints.maxWidth < 380 || constraints.maxHeight < 420;
+              return Tooltip(
+                message: _boardModeLabel(widget.language, _boardFitMode),
+                child: Material(
+                  color: cream.withValues(alpha: .96),
+                  elevation: 3,
+                  borderRadius: BorderRadius.circular(compact ? 10 : 12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(compact ? 10 : 12),
+                    onTap: () {
+                      if (_boardFitMode) {
+                        setState(() => _boardFitMode = false);
+                      } else {
+                        setState(() => _boardFitMode = true);
+                        _fitBoard(
+                          constraints.maxWidth,
+                          constraints.maxHeight,
+                          boardWidth,
+                          boardHeight,
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 8 : 11,
+                        vertical: compact ? 6 : 9,
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(
+                          _boardFitMode ? Icons.zoom_in_rounded : Icons.fit_screen_rounded,
+                          color: pine,
+                          size: compact ? 16 : 18,
+                        ),
+                        if (!compact) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            _boardModeLabel(widget.language, _boardFitMode),
+                            style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ]),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _boardModeLabel(widget.language, _boardFitMode),
-                      style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800),
-                    ),
-                  ]),
+                  ),
                 ),
-              ),
-            ),
+              );
+            }),
           ),
           ]);
         })),
