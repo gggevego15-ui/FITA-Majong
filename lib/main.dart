@@ -304,6 +304,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     [Color(0xFF22254B), Color(0xFF4C3F91), Color(0xFF00C9A7), Color(0xFFFFC857)],
   ];
   late List<String> tiles;
+  late List<_TileSpot> spots;
   int burst = 0;
   final Set<int> removed = {};
   int? selected;
@@ -333,23 +334,100 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _newBoard();
   }
 
+  List<_TileSpot> _makeSpots(int tileCount) {
+    final baseCount = tileCount - 4;
+    final all = <_TileSpot>[];
+    if (baseCount == 12) {
+      for (var y = 0; y < 4; y++) {
+        for (var x = 0; x < 4; x++) {
+          if (x == 0 || x == 3 || y == 0 || y == 3) {
+            all.add(_TileSpot(x: x, y: y, layer: 0));
+          }
+        }
+      }
+    } else {
+      for (var y = 0; y < 5; y++) {
+        for (var x = 0; x < 4; x++) {
+          all.add(_TileSpot(x: x, y: y, layer: 0));
+        }
+      }
+      all.removeRange(baseCount, all.length);
+    }
+    for (final y in [1, 2]) {
+      for (final x in [1, 2]) {
+        all.add(_TileSpot(x: x, y: y, layer: 1));
+      }
+    }
+    return all;
+  }
+
+  bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) {
+    if (gone.contains(index)) return false;
+    final spot = layout[index];
+    for (var j = 0; j < layout.length; j++) {
+      if (gone.contains(j) || j == index) continue;
+      final other = layout[j];
+      if (other.layer > spot.layer && other.x == spot.x && other.y == spot.y) {
+        return false;
+      }
+    }
+    final leftBlocked = layout.asMap().entries.any((e) =>
+      !gone.contains(e.key) && e.key != index &&
+      e.value.layer == spot.layer && e.value.y == spot.y && e.value.x == spot.x - 1);
+    final rightBlocked = layout.asMap().entries.any((e) =>
+      !gone.contains(e.key) && e.key != index &&
+      e.value.layer == spot.layer && e.value.y == spot.y && e.value.x == spot.x + 1);
+    return !leftBlocked || !rightBlocked;
+  }
+
+  List<int>? _solveLayout(List<_TileSpot> layout) {
+    final dead = <String>{};
+    List<int>? search(Set<int> gone) {
+      if (gone.length == layout.length) return <int>[];
+      final key = gone.toList()..sort();
+      final encoded = key.join(',');
+      if (dead.contains(encoded)) return null;
+      final open = List.generate(layout.length, (i) => i)
+        .where((i) => _availableInState(i, layout, gone)).toList();
+      // Try exposed upper-layer tiles first, then edge tiles.
+      open.sort((a, b) => layout[b].layer.compareTo(layout[a].layer));
+      for (var a = 0; a < open.length; a++) {
+        for (var b = a + 1; b < open.length; b++) {
+          final next = {...gone, open[a], open[b]};
+          final tail = search(next);
+          if (tail != null) return [open[a], open[b], ...tail];
+        }
+      }
+      dead.add(encoded);
+      return null;
+    }
+    return search(<int>{});
+  }
+
   void _newBoard() {
     pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
-    final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt().toInt()].take(pairs).toList();
-    final rng = Random(widget.level * 19 + DateTime.now().millisecondsSinceEpoch % 997);
-    tiles = [...symbols, ...symbols]..shuffle(rng);
+    final tileCount = pairs * 2;
+    spots = _makeSpots(tileCount);
+    final order = _solveLayout(spots);
+    // The layouts are designed to peel from the top/edges. Keep a safe fallback
+    // for unexpected future layouts so a level never crashes during generation.
+    final solvableOrder = order ?? List.generate(tileCount, (i) => i);
+    final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].take(pairs).toList()
+      ..shuffle(Random(widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997));
+    tiles = List.filled(tileCount, '');
+    for (var p = 0; p < pairs; p++) {
+      tiles[solvableOrder[p * 2]] = symbols[p];
+      tiles[solvableOrder[p * 2 + 1]] = symbols[p];
+    }
     removed.clear();
     selected = null;
     mismatch = null;
     hintA = null;
     hintB = null;
     moves = 0;
-    pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
     busy = false;
     finished = false;
-    _clock
-      ..reset()
-      ..start();
+    _clock..reset()..start();
   }
 
   void _feedback({bool success = false}) {
@@ -368,6 +446,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _tap(int i) async {
     if (busy || finished || removed.contains(i)) return;
+    if (!_availableInState(i, spots, removed)) {
+      if (widget.haptics) HapticFeedback.selectionClick();
+      return;
+    }
     if (selected == i) {
       setState(() => selected = null);
       return;
@@ -390,7 +472,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     if (tiles[first] == tiles[i]) {
       _feedback(success: true);
-      setState(() { burst++;
+      setState(() {
+        burst++;
         removed.add(first);
         removed.add(i);
         selected = null;
@@ -408,7 +491,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         mismatch = i;
         busy = true;
       });
-      await Future.delayed(const Duration(milliseconds: 420));
+      await Future.delayed(Duration(milliseconds: widget.animationLevel == 0 ? 220 : 420));
       if (!mounted) return;
       setState(() {
         mismatch = null;
@@ -420,14 +503,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _hint() {
     if (busy || finished) return;
-    for (var i = 0; i < tiles.length; i++) {
-      if (removed.contains(i)) continue;
-      for (var j = i + 1; j < tiles.length; j++) {
-        if (!removed.contains(j) && tiles[i] == tiles[j]) {
+    final open = List.generate(tiles.length, (i) => i)
+      .where((i) => _availableInState(i, spots, removed)).toList();
+    for (var a = 0; a < open.length; a++) {
+      for (var b = a + 1; b < open.length; b++) {
+        if (tiles[open[a]] == tiles[open[b]]) {
           setState(() {
             selected = null;
-            hintA = i;
-            hintB = j;
+            hintA = open[a];
+            hintB = open[b];
           });
           if (widget.haptics) HapticFeedback.selectionClick();
           return;
@@ -439,19 +523,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _shuffle() {
     if (busy || finished) return;
     setState(() {
-      final remaining = <String>[];
-      for (var i = 0; i < tiles.length; i++) {
-        if (!removed.contains(i)) remaining.add(tiles[i]);
-      }
-      remaining.shuffle(Random(DateTime.now().millisecondsSinceEpoch));
-      var cursor = 0;
-      for (var i = 0; i < tiles.length; i++) {
-        if (!removed.contains(i)) tiles[i] = remaining[cursor++];
-      }
-      selected = null;
-      mismatch = null;
-      hintA = null;
-      hintB = null;
+      _newBoard();
+      burst++;
     });
     _feedback();
   }
@@ -506,7 +579,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     appBar: AppBar(
       backgroundColor: cream,
       foregroundColor: pine,
-      title: Text('Garden · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      title: Text('Mahjong · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
       centerTitle: true,
       actions: [
         IconButton(tooltip: 'Hint', onPressed: _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
@@ -530,50 +603,51 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.spa_rounded, color: leaf, size: 18),
             const SizedBox(width: 8),
-            Text(finished ? 'Beautifully done!' : 'Find two matching garden tiles', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
+            Text(finished ? 'Beautifully done!' : 'Free a tile · match two identical symbols', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
           ]),
         ),
         const SizedBox(height: 12),
-        Expanded(child: Center(child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 500),
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(5),
-            itemCount: tiles.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 9,
-              childAspectRatio: .78,
-            ),
-            itemBuilder: (context, i) {
+        Expanded(child: LayoutBuilder(builder: (context, constraints) {
+          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7);
+          final tileHeight = tileWidth * 1.08;
+          return Center(child: SizedBox(
+            width: tileWidth * 4.35,
+            height: tileHeight * 4.65,
+            child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
+              final spot = spots[i];
               final gone = removed.contains(i);
               final active = selected == i;
               final hinted = hintA == i || hintB == i;
               final wrong = mismatch == i || mismatch == selected;
-              return AnimatedScale(
-                scale: gone ? .72 : active ? 1.04 : 1,
-                duration: const Duration(milliseconds: 190),
+              final enabled = _availableInState(i, spots, removed);
+              return AnimatedPositioned(
+                duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : widget.animationLevel == 1 ? 180 : 300),
                 curve: Curves.easeOutBack,
-                child: AnimatedOpacity(
-                  opacity: gone ? 0 : 1,
-                  duration: const Duration(milliseconds: 220),
-                  child: gone
-                      ? const SizedBox.shrink()
-                      : _GardenTile(
-                          symbol: tiles[i],
-                          tileTheme: widget.tileTheme,
-                          animationLevel: widget.animationLevel,
-                          selected: active,
-                          hinted: hinted,
-                          wrong: wrong,
-                          onTap: () => _tap(i),
-                        ),
+                left: spot.x * tileWidth * .94 + spot.layer * tileWidth * .10,
+                top: spot.y * tileHeight * .72 - spot.layer * tileHeight * .20,
+                width: tileWidth,
+                height: tileHeight,
+                child: AnimatedScale(
+                  scale: gone ? .65 : active ? 1.06 : hinted ? 1.04 : 1,
+                  duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : 200),
+                  child: AnimatedOpacity(
+                    opacity: gone ? 0 : enabled ? 1 : .58,
+                    duration: const Duration(milliseconds: 180),
+                    child: gone ? const SizedBox.shrink() : _GardenTile(
+                      symbol: tiles[i],
+                      tileTheme: widget.tileTheme,
+                      animationLevel: widget.animationLevel,
+                      selected: active,
+                      hinted: hinted,
+                      wrong: wrong,
+                      onTap: () => _tap(i),
+                    ),
+                  ),
                 ),
               );
-            },
-          ),
-        ))),
+            })),
+          ));
+        })),
         const SizedBox(height: 10),
         Row(children: [
           Expanded(child: OutlinedButton.icon(
@@ -590,6 +664,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ]))),
     ]),
   );
+}
+
+class _TileSpot {
+  final int x;
+  final int y;
+  final int layer;
+  const _TileSpot({required this.x, required this.y, required this.layer});
 }
 
 class _BurstOverlay extends StatefulWidget {
