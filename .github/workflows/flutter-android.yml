@@ -35,7 +35,6 @@ jobs:
             --dart-define=FITA_FIREBASE_ANDROID_APP_ID="$FITA_FIREBASE_ANDROID_APP_ID" \
             --dart-define=FITA_FIREBASE_IOS_API_KEY="$FITA_FIREBASE_IOS_API_KEY" \
             --dart-define=FITA_FIREBASE_IOS_APP_ID="$FITA_FIREBASE_IOS_APP_ID" \
-            --dart-define=FITA_IOS_BUNDLE_ID="$FITA_IOS_BUNDLE_ID" \
             --dart-define=FITA_IOS_BUNDLE_ID="$FITA_IOS_BUNDLE_ID"
       - uses: actions/upload-artifact@v4
         with:
