@@ -637,7 +637,7 @@ class _MultiplayerLobbyState extends State<_MultiplayerLobby> {
             textInputAction: TextInputAction.go,
             decoration: const InputDecoration(
               labelText: 'Friend’s room code',
-              hintText: 'ABC123',
+              hintText: 'ABC234',
               counterText: '',
               border: OutlineInputBorder(),
               filled: true,
@@ -1032,6 +1032,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       Future.delayed(const Duration(milliseconds: 420), () { if (mounted) setState(() => shaking = false); });
       if (pairs == 0) {
         finished = true;
+        unawaited(_syncRoomProgress());
         _clock.stop();
         _winController.forward(from: 0);
         if (mounted) _showWin();
