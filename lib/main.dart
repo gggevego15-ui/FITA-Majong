@@ -265,7 +265,7 @@ class _GameScreenState extends State<GameScreen> {
         Row(children: [
           Expanded(child: OutlinedButton.icon(onPressed: () => setState(() { selected = null; }), icon: const Icon(Icons.close_rounded), label: const Text('Deselect'))),
           const SizedBox(width: 10),
-          Expanded(child: FilledButton.icon(onPressed: () => setState(() { tiles.shuffle(Random(); selected = null; }), icon: const Icon(Icons.shuffle_rounded), label: const Text('Shuffle'))),
+          Expanded(child: FilledButton.icon(onPressed: () => setState(() { tiles.shuffle(Random(widget.level + moves)); selected = null; }), icon: const Icon(Icons.shuffle_rounded), label: const Text('Shuffle'))),
         ]),
       ]))),
     ]),
