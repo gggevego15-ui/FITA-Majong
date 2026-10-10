@@ -530,7 +530,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         builder: (context, child) {
           final t = Curves.easeInOutCubic.transform(_flightController.value);
           final point = Offset.lerp(start, end, t)!;
-          final size = lerpDouble(sourceBox.size.width, min(targetBox.size.width * .72, sourceBox.size.width), t)!;
+          final size = sourceBox.size.width + (min(targetBox.size.width * .72, sourceBox.size.width) - sourceBox.size.width) * t;
           return Positioned(
             left: point.dx - size / 2,
             top: point.dy - size / 2,
@@ -1051,7 +1051,7 @@ class _GardenTile extends StatelessWidget {
   final bool hinted;
   final bool wrong;
   final VoidCallback onTap;
-  const _GardenTile({required this.symbol, this.tileTheme = 0, this.animationLevel = 2, required this.selected, required this.hinted, required this.wrong, required this.onTap});
+  const _GardenTile({super.key, required this.symbol, this.tileTheme = 0, this.animationLevel = 2, required this.selected, required this.hinted, required this.wrong, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
