@@ -1044,7 +1044,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
           final tileWidth = min((constraints.maxWidth - 8) / 9.5, (constraints.maxHeight - 8) / 7.5).clamp(34.0, 62.0).toDouble();
           final tileHeight = tileWidth * 1.08;
-          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(
+          return SingleChildScrollView(scrollDirection: Axis.vertical, physics: const ClampingScrollPhysics(), child: SingleChildScrollView(scrollDirection: Axis.horizontal, physics: const ClampingScrollPhysics(), child: SizedBox(
             width: tileWidth * 14.5,
             height: tileHeight * 10.35,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
@@ -1081,7 +1081,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
-          )));
+          ))));
         })),
         const SizedBox(height: 10),
         Row(children: [
