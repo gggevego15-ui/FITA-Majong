@@ -1,7 +1,14 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-void main() => runApp(const FitaMahjongApp());
+import 'services/auth_service.dart';
+import 'services/progress_store.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AuthService.instance.initialize();
+  runApp(const FitaMahjongApp());
+}
 
 const pine = Color(0xFF244E42);
 const leaf = Color(0xFF6F9E78);
@@ -26,12 +33,64 @@ class FitaMahjongApp extends StatelessWidget {
       );
 }
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
-  void _providerNotice(BuildContext context, String provider) {
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  bool _busy = false;
+
+  Future<void> _continueAsGuest() async {
+    setState(() => _busy = true);
+    try {
+      await AuthService.instance.continueAsGuest();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (error) {
+      _notice('Guest mode could not start: $error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _signInGoogle() async {
+    await _runProvider('Google', AuthService.instance.signInWithGoogle);
+  }
+
+  Future<void> _signInApple() async {
+    await _runProvider('Apple', AuthService.instance.signInWithApple);
+  }
+
+  Future<void> _runProvider(
+    String provider,
+    Future<dynamic> Function() action,
+  ) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      await ProgressStore.instance.load();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } on AuthFlowCancelled {
+      // User dismissed the provider's sign-in sheet.
+    } catch (error) {
+      _notice('$provider sign-in failed: $error');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _notice(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$provider sign-in is a placeholder. Provider credentials are not connected yet.')),
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -72,20 +131,20 @@ class WelcomeScreen extends StatelessWidget {
                     SizedBox(width: double.infinity, height: 56,
                       child: FilledButton(
                         style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-                        onPressed: () => Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen())),
-                        child: const Text('Play as guest', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        onPressed: _busy ? null : _continueAsGuest,
+                        child: Text(_busy ? 'Please wait…' : 'Play as guest', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       )),
                     const SizedBox(height: 12),
                     Row(children: [
                       Expanded(child: OutlinedButton.icon(
-                        onPressed: () => _providerNotice(context, 'Google'),
+                        onPressed: _busy ? null : _signInGoogle,
                         icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
                         label: const Text('Google'),
                         style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
                       )),
                       const SizedBox(width: 10),
                       Expanded(child: OutlinedButton.icon(
-                        onPressed: () => _providerNotice(context, 'Apple'),
+                        onPressed: _busy ? null : _signInApple,
                         icon: const Icon(Icons.apple_rounded, size: 22),
                         label: const Text('Apple'),
                         style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
@@ -112,6 +171,34 @@ class _HomeScreenState extends State<HomeScreen> {
   int level = 1;
   bool sound = true;
   bool haptics = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreProgress();
+  }
+
+  Future<void> _restoreProgress() async {
+    final saved = await ProgressStore.instance.load();
+    if (!mounted) return;
+    setState(() {
+      level = (saved['level'] as num?)?.toInt() ?? 1;
+      sound = saved['sound'] as bool? ?? true;
+      haptics = saved['haptics'] as bool? ?? true;
+    });
+  }
+
+  Future<void> _saveProgress() async {
+    try {
+      await ProgressStore.instance.save(
+        level: level,
+        sound: sound,
+        haptics: haptics,
+      );
+    } catch (error) {
+      if (mounted) _message(context, 'Saved on this device; cloud sync will retry later.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -146,7 +233,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: FilledButton.styleFrom(backgroundColor: cream, foregroundColor: pine, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 onPressed: () async {
                   final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level)));
-                  if (won == true && mounted) setState(() => level++);
+                  if (won == true && mounted) {
+                    setState(() => level++);
+                    await _saveProgress();
+                  }
                 },
                 child: Text('Continue  ·  Level $level', style: const TextStyle(fontWeight: FontWeight.w900)),
               )),
@@ -176,10 +266,10 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Little comforts', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
       const SizedBox(height: 12),
-      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
-      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
+      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress();, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
+      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress();, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       const SizedBox(height: 8),
-      const Text('Settings are session-only in this prototype. Saved preferences will be added with local storage.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+      const Text('Preferences are stored locally; cloud sync is used when your account and network are available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
     ]),
   )));
 
