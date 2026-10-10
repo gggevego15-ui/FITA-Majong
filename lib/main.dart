@@ -46,6 +46,10 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   bool _busy = false;
+  String language = 'en';
+  @override
+  void initState() { super.initState(); SharedPreferences.getInstance().then((p) { if (mounted) setState(() => language = p.getString('fita.language') ?? 'en'); }); }
+  Future<void> _setLanguage(String value) async { final p = await SharedPreferences.getInstance(); await p.setString('fita.language', value); if (mounted) setState(() => language = value); }
 
   Future<void> _continueAsGuest() async {
     setState(() => _busy = true);
@@ -53,7 +57,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       await AuthService.instance.continueAsGuest();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => HomeScreen(initialLanguage: language)),
       );
     } catch (error) {
       _notice('Guest mode could not start: $error');
@@ -89,16 +93,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         const SizedBox(width: 12),
                         const Text('FITA', style: TextStyle(fontSize: 19, letterSpacing: 4, fontWeight: FontWeight.w900, color: pine)),
                         const Spacer(),
-                        const Text('BETA 0.1', style: TextStyle(fontSize: 10, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w700)),
+                        DropdownButton<String>(value: language, underline: const SizedBox.shrink(), items: const [DropdownMenuItem(value:'en',child:Text('EN')),DropdownMenuItem(value:'ru',child:Text('RU')),DropdownMenuItem(value:'es',child:Text('ES')),DropdownMenuItem(value:'fr',child:Text('FR')),DropdownMenuItem(value:'de',child:Text('DE')),DropdownMenuItem(value:'pt',child:Text('PT')),DropdownMenuItem(value:'it',child:Text('IT')),DropdownMenuItem(value:'tr',child:Text('TR')),DropdownMenuItem(value:'zh',child:Text('中文')),DropdownMenuItem(value:'ja',child:Text('日本語')),DropdownMenuItem(value:'ko',child:Text('한국어')),DropdownMenuItem(value:'hi',child:Text('हिन्दी')),DropdownMenuItem(value:'ar',child:Text('عربي'))], onChanged: (v) { if (v != null) _setLanguage(v); }),
                       ],
                     ),
                     const Spacer(flex: 2),
                     const Icon(Icons.wb_twilight_rounded, size: 44, color: Color(0xFFD58D59)),
                     const SizedBox(height: 12),
-                    const Text('A little calm,\none tile at a time.', textAlign: TextAlign.center,
+                    const Text(_tr(language, 'welcomeTitle'), textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 34, height: 1.12, fontWeight: FontWeight.w900, color: pine, letterSpacing: -.8)),
                     const SizedBox(height: 12),
-                    Text('Find your rhythm in a garden of puzzles.', textAlign: TextAlign.center,
+                    Text(_tr(language, 'welcomeSubtitle'), textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 15, color: pine.withValues(alpha: .78))),
                     const Spacer(flex: 2),
                     _TileShowcase(),
@@ -107,10 +111,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: FilledButton(
                         style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                         onPressed: _busy ? null : _continueAsGuest,
-                        child: Text(_busy ? 'Please wait…' : 'Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        child: Text(_tr(language, _busy ? 'pleaseWait' : 'play'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       )),
                     const SizedBox(height: 10),
-                    Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withValues(alpha: .7))),
+                    Text(_tr(language, 'guestNote'), style: TextStyle(fontSize: 11, color: pine.withValues(alpha: .7))),
                   ],
                 ),
               ),
@@ -121,7 +125,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 }
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String initialLanguage;
+  const HomeScreen({super.key, this.initialLanguage = 'en'});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -155,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundTheme = prefs.getInt('fita.theme.background') ?? 0;
       tileTheme = prefs.getInt('fita.theme.tiles') ?? 0;
       animationLevel = prefs.getInt('fita.animation.level') ?? 2;
-      language = prefs.getString('fita.language') ?? 'en';
+      language = prefs.getString('fita.language') ?? widget.initialLanguage;
     });
   }
 
@@ -203,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: double.infinity, height: 48, child: FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: cream, foregroundColor: pine, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 onPressed: () => _launchLevel(level),
-                child: Text('Continue  ·  Level $level', style: const TextStyle(fontWeight: FontWeight.w900)),
+                child: Text('${_tr(language, 'continue')}  ·  ${_tr(language, 'level')} $level', style: const TextStyle(fontWeight: FontWeight.w900)),
               )),
             ]),
           ),
@@ -222,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _settings(context)),
           const SizedBox(height: 18),
-          Center(child: Text('Breathe in. Match two. Breathe out.', style: TextStyle(color: pine.withValues(alpha: .7), fontStyle: FontStyle.italic))),
+          Center(child: Text(_tr(language, 'breathe'), style: TextStyle(color: pine.withValues(alpha: .7), fontStyle: FontStyle.italic))),
         ]))),
       ])),
     ]),
@@ -310,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _settings(BuildContext context) => showModalBottomSheet(context: context, backgroundColor: cream, showDragHandle: true, builder: (context) => StatefulBuilder(builder: (context, setSheet) => Padding(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 30),
     child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Little comforts', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
+      Text(_tr(language, 'settings'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
       const SizedBox(height: 10),
       const Text('LANGUAGE / ЯЗЫК', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 6),
@@ -335,17 +340,17 @@ class _HomeScreenState extends State<HomeScreen> {
         onChanged: (v) async { if (v == null) return; setState(() => language = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setString('fita.language', v); },
       ),
       const SizedBox(height: 12),
-      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
-      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
+      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'sound')), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
+      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'haptics')), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       const Divider(height: 20),
-      const Text('BACKGROUND THEME', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      Text(_tr(language, 'backgroundTheme'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
       Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
         onTap: () async { setState(() => backgroundTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.background', i); },
         child: Container(width: 48, height: 42, decoration: BoxDecoration(gradient: LinearGradient(colors: [[const Color(0xFFE8F0DE), const Color(0xFFFFF6E7)], [const Color(0xFFFFD6E8), const Color(0xFFFFE7A8)], [const Color(0xFFB8F2E6), const Color(0xFFCDB4DB)], [const Color(0xFF171B45), const Color(0xFF302B63)]][i]), borderRadius: BorderRadius.circular(13), border: Border.all(color: backgroundTheme == i ? pine : Colors.white, width: backgroundTheme == i ? 3 : 1))),
       ))),
       const SizedBox(height: 14),
-      const Text('TILE STYLE', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      Text(_tr(language, 'tileStyle'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
       Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
         onTap: () async { setState(() => tileTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.tiles', i); },
@@ -355,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Row(children: [const Expanded(child: Text('Animation intensity', style: TextStyle(color: pine, fontWeight: FontWeight.w700))), Text(['Low','Normal','Extra'][animationLevel], style: const TextStyle(color: pine))]),
       Slider(value: animationLevel.toDouble(), min: 0, max: 2, divisions: 2, activeColor: pine, onChanged: (v) async { setState(() => animationLevel = v.round()); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.animation.level', v.round()); }),
       const SizedBox(height: 8),
-      const Text('Preferences are stored locally and sync to the cloud when Firebase is configured and the network is available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+      Text(_tr(language, 'preferencesNote'), style: const TextStyle(color: Colors.black54, fontSize: 12)),
     ])),
   )));
 
@@ -600,8 +605,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           backgroundColor: cream,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           icon: const Icon(Icons.celebration_rounded, size: 48, color: Color(0xFFD58D59)),
-          title: const Text('Mahjong mastered!', textAlign: TextAlign.center, style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
-          content: Text('Every pair is matched in $moves moves · $elapsed', textAlign: TextAlign.center),
+          title: Text(_tr(widget.language, 'wonTitle'), textAlign: TextAlign.center, style: const TextStyle(color: pine, fontWeight: FontWeight.w900)),
+          content: Text('${_tr(widget.language, 'wonMessage')} $moves ${_tr(widget.language, 'movesLower')} · $elapsed', textAlign: TextAlign.center),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
             FilledButton(
@@ -610,7 +615,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Navigator.of(dialogContext).pop();
                 Navigator.of(context).pop(true);
               },
-              child: const Text('Next level'),
+              child: Text(_tr(widget.language, 'nextLevel')),
             ),
           ],
         ),
@@ -634,8 +639,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       title: Text('FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
       centerTitle: true,
       actions: [
-        IconButton(tooltip: 'Undo last move', onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
-        IconButton(tooltip: 'Show an available pair', onPressed: busy || finished ? null : _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
+        IconButton(tooltip: _tr(widget.language, 'undo'), onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
+        IconButton(tooltip: _tr(widget.language, 'hint'), onPressed: busy || finished ? null : _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
       ],
     ),
     body: Stack(children: [
@@ -688,7 +693,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.spa_rounded, color: leaf, size: 18),
             const SizedBox(width: 8),
-            Text(finished ? 'Beautifully done!' : '144 tiles · 4 layers · free left/right edge', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
+            Text(finished ? _tr(widget.language, 'done') : _tr(widget.language, 'boardHelp'), style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
           ]),
         ),
         const SizedBox(height: 12),
@@ -737,13 +742,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         Row(children: [
           Expanded(child: OutlinedButton.icon(
             onPressed: busy || finished ? null : () => setState(() { selected = null; hintA = null; hintB = null; }),
-            icon: const Icon(Icons.close_rounded), label: const Text('Deselect'),
+            icon: const Icon(Icons.close_rounded), label: Text(_tr(widget.language, 'deselect')),
           )),
           const SizedBox(width: 10),
           Expanded(child: FilledButton.icon(
             onPressed: busy || finished ? null : _shuffle,
             style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
-            icon: const Icon(Icons.shuffle_rounded), label: const Text('Solvable shuffle'),
+            icon: const Icon(Icons.shuffle_rounded), label: Text(_tr(widget.language, 'shuffle')),
           )),
         ]),
       ])))),
