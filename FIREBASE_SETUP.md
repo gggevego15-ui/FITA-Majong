@@ -65,11 +65,10 @@ From the repository root, with Firebase CLI installed and authenticated:
 
 ```sh
 firebase login
-firebase use YOUR_REAL_FIREBASE_PROJECT_ID
-firebase deploy --only firestore:rules
+firebase deploy --only firestore:rules --project YOUR_REAL_FIREBASE_PROJECT_ID
 ```
 
-Replace `YOUR_REAL_FIREBASE_PROJECT_ID` with the actual Project ID copied from Firebase Console. The repository does not contain a `.firebaserc` because the project ID is not known yet.
+Replace `YOUR_REAL_FIREBASE_PROJECT_ID` with the actual Project ID copied from Firebase Console. The explicit `--project` flag works without a `.firebaserc`; do not add a guessed project ID to the repository.
 
 The rules restrict cloud saves to each authenticated UID and allow room access to the host, guest, or a player attempting to join a waiting room. Never replace them with public rules such as `allow read, write: if true`.
 
