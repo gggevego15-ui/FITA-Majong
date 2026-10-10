@@ -1065,8 +1065,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   scale: gone ? .92 : active ? 1.06 : hinted ? 1.04 : 1,
                   child: Opacity(
                     opacity: gone ? 0 : enabled ? 1 : .62,
+                    // Covered tiles stay visible but must not steal taps from
+                    // a playable tile beneath their overlapping hit regions.
                     child: IgnorePointer(
-                      ignoring: gone,
+                      ignoring: gone || !enabled,
                       child: _GardenTile(
                         key: tileKey,
                         symbol: tiles[i],
