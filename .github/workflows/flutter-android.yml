@@ -18,6 +18,10 @@ jobs:
           flutter create /tmp/fita_native --project-name fita_mahjong --platforms=android,ios
           cp -R /tmp/fita_native/android ./android
       - run: flutter pub get
+      - name: Analyze Dart and Flutter code
+        run: flutter analyze
+      - name: Run unit tests
+        run: flutter test
       - name: Build Android APK
         env:
           FITA_FIREBASE_PROJECT_ID: ${{ vars.FITA_FIREBASE_PROJECT_ID }}
