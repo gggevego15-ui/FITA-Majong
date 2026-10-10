@@ -350,10 +350,10 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const _tileSets = [
-    ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷'],
-    ['🌈','⭐','💖','🦄','🍭','🧁','🎀','🫧','🌟','🍬','💫','🩷'],
-    ['💎','🔮','🪐','☄️','🌌','🧿','🪄','✨','🌙','💠','🌀','⭐'],
-    ['🔥','⚡','🌊','🌪️','☀️','🌈','💥','🌟','🪩','💫','🧨','✨'],
+    ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷','🌷','🌱','🌳','🍁','🍂','🌾','🌵','🌴','🪴','🪻','🐞','🐛','🐌','🐢','🦜','🦚','🪺','🍇','🍉','🍊','🍋','🍓','🫐','🥝'],
+    ['🌈','⭐','💖','🦄','🍭','🧁','🎀','🫧','🌟','🍬','💫','🩷','🎈','🎨','🎁','🪅','🎠','🧸','🍰','🍡','🍥','🍮','🍦','🍨','🍧','🍩','🍪','🥨','🧋','🪄','🎐','🪷','🌺','💐','🪻','🌹'],
+    ['💎','🔮','🪐','☄️','🌌','🧿','🪄','✨','🌙','💠','🌀','⭐','🌠','🛸','👽','🚀','🛰️','🌍','🌕','🌑','🌘','🌗','🌖','🌔','☀️','🌞','🌟','🌈','⚡','🪐','🔭','🪬','💫','🌌','☄️','🪷'],
+    ['🔥','⚡','🌊','🌪️','☀️','🌈','💥','🌟','🪩','💫','🧨','✨','🎇','🎆','🔆','🌞','🌤️','🌩️','🌫️','🌬️','💧','💦','🫧','🌀','🌋','🌡️','☄️','🌠','🔮','💎','🪐','🛸','🚀','⚙️','🔋','💡'],
   ];
   static const _tileColors = [
     [Color(0xFFFFFDF6), Color(0xFFFFE4B5), Color(0xFFE3EDD9), Color(0xFFD9E8EF)],
@@ -392,31 +392,66 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _newBoard();
   }
 
+  /// A compact, 144-tile turtle-inspired layout: 96 base tiles plus
+  /// three centered terraces (24, 16, and 8 tiles).
   List<_TileSpot> _makeSpots(int tileCount) {
-    final baseCount = tileCount - 4;
-    final all = <_TileSpot>[];
-    if (baseCount == 12) {
-      for (var y = 0; y < 4; y++) {
-        for (var x = 0; x < 4; x++) {
-          if (x == 0 || x == 3 || y == 0 || y == 3) {
-            all.add(_TileSpot(x: x, y: y, layer: 0));
-          }
-        }
-      }
-    } else {
-      for (var y = 0; y < 5; y++) {
-        for (var x = 0; x < 4; x++) {
-          all.add(_TileSpot(x: x, y: y, layer: 0));
-        }
-      }
-      all.removeRange(baseCount, all.length);
-    }
-    for (final y in [1, 2]) {
-      for (final x in [1, 2]) {
-        all.add(_TileSpot(x: x, y: y, layer: 1));
+    final result = <_TileSpot>[];
+    for (var y = 0; y < 8; y++) {
+      for (var x = 0; x < 12; x++) {
+        result.add(_TileSpot(x: x, y: y, layer: 0));
       }
     }
-    return all;
+    for (var y = 2; y < 6; y++) {
+      for (var x = 3; x < 9; x++) {
+        result.add(_TileSpot(x: x, y: y, layer: 1));
+      }
+    }
+    for (var y = 2; y < 6; y++) {
+      for (var x = 4; x < 8; x++) {
+        result.add(_TileSpot(x: x, y: y, layer: 2));
+      }
+    }
+    for (var y = 2; y < 6; y++) {
+      for (var x = 5; x < 7; x++) {
+        result.add(_TileSpot(x: x, y: y, layer: 3));
+      }
+    }
+    assert(result.length == 144);
+    return result;
+  }
+
+  /// Builds a guaranteed legal peel order: clear the top terrace first, then
+  /// work outward layer-by-layer. Every row has even width, so its two ends
+  /// can be removed in pairs until the row is empty.
+  List<int> _classicRemovalOrder(List<_TileSpot> layout) {
+    final order = <int>[];
+    for (var layer = 3; layer >= 0; layer--) {
+      final rows = layout
+          .asMap()
+          .entries
+          .where((entry) => entry.value.layer == layer)
+          .map((entry) => entry.value.y)
+          .toSet()
+          .toList()
+        ..sort();
+      for (final y in rows) {
+        final row = layout.asMap().entries
+            .where((entry) => entry.value.layer == layer && entry.value.y == y)
+            .map((entry) => entry.key)
+            .toList()
+          ..sort((a, b) => layout[a].x.compareTo(layout[b].x));
+        var left = 0;
+        var right = row.length - 1;
+        while (left < right) {
+          order.add(row[left++]);
+          order.add(row[right--]);
+        }
+      }
+    }
+    if (!MahjongRules.isValidRemovalOrder(layout, order)) {
+      throw StateError('Generated classic Mahjong removal order is invalid');
+    }
+    return order;
   }
 
   bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
@@ -447,19 +482,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _newBoard() {
-    pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
-    final tileCount = pairs * 2;
+    pairs = 72;
+    const tileCount = 144;
     spots = _makeSpots(tileCount);
-    final order = _solveLayout(spots);
-    // The layouts are designed to peel from the top/edges. Keep a safe fallback
-    // for unexpected future layouts so a level never crashes during generation.
-    final solvableOrder = order ?? (throw StateError('No solvable layout generated for level ${widget.level}'));
-    final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].take(pairs).toList()
+    final solvableOrder = _classicRemovalOrder(spots);
+    final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].toList()
       ..shuffle(Random(widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997));
     tiles = List.filled(tileCount, '');
+    // Four copies of each of the 36 faces: each face forms two matching pairs.
     for (var p = 0; p < pairs; p++) {
-      tiles[solvableOrder[p * 2]] = symbols[p];
-      tiles[solvableOrder[p * 2 + 1]] = symbols[p];
+      final symbol = symbols[p ~/ 2];
+      tiles[solvableOrder[p * 2]] = symbol;
+      tiles[solvableOrder[p * 2 + 1]] = symbol;
     }
     removed.clear();
     selected = null;
@@ -636,7 +670,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           const Spacer(),
           _StatPill(label: 'TIME', value: elapsed),
           const Spacer(),
-          _StatPill(label: 'PAIRS', value: '$pairs'),
+          _StatPill(label: 'PAIRS', value: '${removed.length ~/ 2}/72'),
         ]),
         const SizedBox(height: 14),
         Container(
@@ -645,16 +679,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.spa_rounded, color: leaf, size: 18),
             const SizedBox(width: 8),
-            Text(finished ? 'Beautifully done!' : 'Free a tile · match two identical symbols', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
+            Text(finished ? 'Beautifully done!' : '144 tiles · 4 layers · free left/right edge', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
           ]),
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7).clamp(34.0, 78.0).toDouble();
+          final tileWidth = min((constraints.maxWidth - 8) / 12.5, (constraints.maxHeight - 8) / 8.6).clamp(22.0, 48.0).toDouble();
           final tileHeight = tileWidth * 1.08;
           return Center(child: SizedBox(
-            width: tileWidth * 4.35,
-            height: tileHeight * 4.65,
+            width: tileWidth * 12.5,
+            height: tileHeight * 8.35,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
               final spot = spots[i];
               final gone = removed.contains(i);
@@ -666,7 +700,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : widget.animationLevel == 1 ? 180 : 300),
                 curve: Curves.easeOutBack,
                 left: spot.x * tileWidth * .94 + spot.layer * tileWidth * .10,
-                top: spot.y * tileHeight * .72 - spot.layer * tileHeight * .20,
+                top: spot.y * tileHeight * .94 - spot.layer * tileHeight * .18,
                 width: tileWidth,
                 height: tileHeight,
                 child: AnimatedScale(
@@ -700,7 +734,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Expanded(child: FilledButton.icon(
             onPressed: busy || finished ? null : _shuffle,
             style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
-            icon: const Icon(Icons.shuffle_rounded), label: const Text('Shuffle'),
+            icon: const Icon(Icons.shuffle_rounded), label: const Text('New layout'),
           )),
         ]),
       ]))),
