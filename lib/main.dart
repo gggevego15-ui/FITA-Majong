@@ -171,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     body: Stack(children: [
-      const Positioned.fill(child: NatureBackdrop()),
+      Positioned.fill(child: NatureBackdrop(theme: backgroundTheme)),
       SafeArea(child: CustomScrollView(slivers: [
         SliverPadding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 28), sliver: SliverList(delegate: SliverChildListDelegate([
           Row(children: [
@@ -334,7 +334,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _newBoard() {
-    final symbols = _tileSets[widget.tileTheme.clamp(0, 3)].take(8).toList();
+    pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
+    final symbols = _tileSets[widget.tileTheme.clamp(0, 3)].take(pairs).toList();
     final rng = Random(widget.level * 19 + DateTime.now().millisecondsSinceEpoch % 997);
     tiles = [...symbols, ...symbols]..shuffle(rng);
     removed.clear();
@@ -343,7 +344,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     hintA = null;
     hintB = null;
     moves = 0;
-    pairs = 8;
+    pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
     busy = false;
     finished = false;
     _clock
