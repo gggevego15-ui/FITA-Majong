@@ -39,6 +39,8 @@ String _tr(String language, String key) {
     'tileGarden':['Tile garden','Сад фишек','Jardín de fichas','Jardin de tuiles','Steingarten','Jardim de peças','Giardino di tessere','Taş bahçesi','麻将牌花园','牌の庭','타일 정원','टाइल बगीचा','حديقة القطع'],
     'exploreTiles':['Explore patterns and tile sets','Узоры и наборы фишек','Explora patrones y fichas','Explore les motifs et les tuiles','Muster und Steinsätze entdecken','Explore padrões e conjuntos','Esplora motivi e tessere','Desenleri ve taş setlerini keşfet','探索图案和牌组','模様と牌セットを探そう','패턴과 타일 세트 탐험','पैटर्न और टाइल सेट देखें','استكشف الأنماط ومجموعات القطع'],
     'breathe':['Breathe in. Match two. Breathe out.','Вдохни. Найди пару. Выдохни.','Respira. Encuentra dos. Exhala.','Respire. Trouve une paire. Expire.','Atmen. Zwei finden. Ausatmen.','Respire. Combine duas. Expire.','Respira. Abbina due. Espira.','Nefes al. İkiliyi eşleştir. Nefes ver.','深呼吸。配对两张。慢慢呼气。','息を吸って、二枚を合わせ、吐く。','숨을 쉬고, 두 개를 맞추고, 내쉬세요.','साँस लें। दो मिलाएँ। साँस छोड़ें।','تنفس. طابق قطعتين. ازفر.'],
+    'guestError':['Guest mode could not start','Не удалось запустить гостевой режим','No se pudo iniciar el modo invitado','Impossible de lancer le mode invité','Gastmodus konnte nicht gestartet werden','Não foi possível iniciar o modo visitante','Impossibile avviare la modalità ospite','Misafir modu başlatılamadı','无法启动访客模式','ゲストモードを開始できませんでした','게스트 모드를 시작할 수 없어요','अतिथि मोड शुरू नहीं हो सका','تعذر بدء وضع الضيف'],
+    'levels':['Levels','Уровни','Niveles','Niveaux','Level','Níveis','Livelli','Seviyeler','关卡','レベル','레벨','स्तर','المستويات'],
     'player':['Player','Игрок','Jugador','Joueur','Spieler','Jogador','Giocatore','Oyuncu','玩家','プレイヤー','플레이어','खिलाड़ी','اللاعب'],
     'completed':['Completed','Пройдено','Completado','Terminé','Abgeschlossen','Concluído','Completato','Tamamlandı','已完成','クリア済み','완료','पूरा हुआ','مكتمل'],
     'language':['Language / Язык','ЯЗЫК','IDIOMA','LANGUE','SPRACHE','IDIOMA','LINGUA','DİL','语言','言語','언어','भाषा','اللغة'],
@@ -125,7 +127,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
         MaterialPageRoute(builder: (_) => HomeScreen(initialLanguage: language)),
       );
     } catch (error) {
-      _notice('Guest mode could not start: $error');
+      _notice('${_tr(language, 'guestError')}: $error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -344,7 +346,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Icon(completed ? Icons.check_rounded : unlocked ? Icons.flag_rounded : Icons.lock_rounded, color: pine),
                     ),
                     title: Text('${_tr(language, 'chapter')} $chapter', style: const TextStyle(fontWeight: FontWeight.w800, color: pine)),
-                    subtitle: Text('Levels $firstLevel–${(index + 1) * 1000}'),
+                    subtitle: Text('${_tr(language, 'levels')} $firstLevel–${(index + 1) * 1000}'),
                     trailing: unlocked ? const Icon(Icons.chevron_right_rounded, color: pine) : null,
                     onTap: unlocked ? () {
                       Navigator.of(sheetContext).pop();
