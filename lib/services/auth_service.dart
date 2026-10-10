@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 
+import '../config/firebase_runtime_config.dart';
+
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,17 +17,29 @@ class AuthService {
   static final AuthService instance = AuthService._();
 
   bool firebaseReady = false;
+  String? initializationError;
 
   Future<void> initialize() async {
+    if (!FirebaseRuntimeConfig.isConfigured) {
+      firebaseReady = false;
+      initializationError =
+          'Firebase configuration is missing; local guest mode is available.';
+      return;
+    }
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        await Firebase.initializeApp(
+          options: FirebaseRuntimeConfig.currentPlatform,
+        );
       }
       firebaseReady = true;
-    } on FirebaseException {
+      initializationError = null;
+    } on FirebaseException catch (error) {
       firebaseReady = false;
-    } catch (_) {
+      initializationError = '${error.code}: ${error.message ?? error.toString()}';
+    } catch (error) {
       firebaseReady = false;
+      initializationError = error.toString();
     }
   }
 
@@ -58,7 +72,14 @@ class AuthService {
 
   Future<UserCredential> signInWithGoogle() async {
     _requireFirebase();
-    final google = GoogleSignIn();
+    final google = GoogleSignIn(
+      clientId: FirebaseRuntimeConfig.googleIosClientId.isEmpty
+          ? null
+          : FirebaseRuntimeConfig.googleIosClientId,
+      serverClientId: FirebaseRuntimeConfig.googleServerClientId.isEmpty
+          ? null
+          : FirebaseRuntimeConfig.googleServerClientId,
+    );
     final account = await google.signIn();
     if (account == null) {
       throw const AuthFlowCancelled();
@@ -127,8 +148,9 @@ class AuthService {
   void _requireFirebase() {
     if (!firebaseReady) {
       throw StateError(
-        'Firebase is not configured. Add Android/iOS Firebase configuration '
-        'files and enable Google and Apple providers in Firebase Console.',
+        'Firebase is not configured. Follow FIREBASE_SETUP.md, provide the '
+        'required FITA_FIREBASE_* values, and enable providers in Firebase Console. '
+        '${initializationError ?? ''}',
       );
     }
   }
