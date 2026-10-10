@@ -554,6 +554,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Stopwatch _clock;
   final AudioPlayer _matchPlayer = AudioPlayer();
   final TransformationController _boardController = TransformationController();
+  bool _boardFitMode = false;
   late final AnimationController _boardFitController;
   Animation<Matrix4>? _boardFitAnimation;
   Timer? _ticker;
@@ -1136,18 +1137,39 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             right: 8,
             top: 8,
             child: Material(
-              color: cream.withValues(alpha: .94),
+              color: cream.withValues(alpha: .96),
               elevation: 3,
               borderRadius: BorderRadius.circular(12),
-              child: IconButton(
-                tooltip: 'Fit entire board',
-                onPressed: () => _fitBoard(
-                  constraints.maxWidth,
-                  constraints.maxHeight,
-                  boardWidth,
-                  boardHeight,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  if (_boardFitMode) {
+                    setState(() => _boardFitMode = false);
+                  } else {
+                    setState(() => _boardFitMode = true);
+                    _fitBoard(
+                      constraints.maxWidth,
+                      constraints.maxHeight,
+                      boardWidth,
+                      boardHeight,
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      _boardFitMode ? Icons.zoom_in_rounded : Icons.fit_screen_rounded,
+                      color: pine,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _boardModeLabel(widget.language, _boardFitMode),
+                      style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800),
+                    ),
+                  ]),
                 ),
-                icon: const Icon(Icons.fit_screen_rounded, color: pine),
               ),
             ),
           ),
@@ -1169,6 +1191,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ])))),
     ]),
   );
+}
+
+
+String _boardModeLabel(String language, bool fitMode) {
+  const labels = <String, List<String>>{
+    'en': ['Fit board', 'Free zoom'],
+    'ru': ['Вместить поле', 'Свободный масштаб'],
+    'es': ['Ajustar tablero', 'Zoom libre'],
+    'fr': ['Ajuster le plateau', 'Zoom libre'],
+    'de': ['Feld einpassen', 'Freier Zoom'],
+    'pt': ['Enquadrar tabuleiro', 'Zoom livre'],
+    'it': ['Adatta tavolo', 'Zoom libero'],
+    'tr': ['Tahtayı sığdır', 'Serbest yakınlaştırma'],
+    'zh': ['适应棋盘', '自由缩放'],
+    'ja': ['盤面を合わせる', '自由ズーム'],
+    'ko': ['보드 맞추기', '자유 확대/축소'],
+    'hi': ['बोर्ड फ़िट करें', 'मुक्त ज़ूम'],
+    'ar': ['ملاءمة اللوحة', 'تكبير حر'],
+  };
+  final pair = labels[language] ?? labels['en']!;
+  return fitMode ? pair[1] : pair[0];
 }
 
 String _gameLabel(String language, String key) {
