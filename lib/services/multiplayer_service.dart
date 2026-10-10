@@ -44,8 +44,14 @@ class MultiplayerService {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = List.generate(6, (_) => alphabet[random.nextInt(alphabet.length)]).join();
       final ref = rooms.doc(code);
-      final existing = await ref.get();
-      if (existing.exists) continue;
+      try {
+        final existing = await ref.get();
+        if (existing.exists) continue;
+      } on FirebaseException catch (error) {
+        // A collision with a room the current player cannot read is retried.
+        if (error.code == 'permission-denied') continue;
+        rethrow;
+      }
       final seed = _seedFor(code);
       await ref.set({
         'code': code,
