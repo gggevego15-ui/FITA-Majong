@@ -352,7 +352,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   static const _tileSets = [
     ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷','🌷','🌱','🌳','🍁','🍂','🌾','🌵','🌴','🪴','🪻','🐞','🐛','🐌','🐢','🦜','🦚','🪺','🍇','🍉','🍊','🍋','🍓','🫐','🥝'],
     ['🌈','⭐','💖','🦄','🍭','🧁','🎀','🫧','🌟','🍬','💫','🩷','🎈','🎨','🎁','🪅','🎠','🧸','🍰','🍡','🍥','🍮','🍦','🍨','🍧','🍩','🍪','🥨','🧋','🪄','🎐','🪷','🌺','💐','🪻','🌹'],
-    ['💎','🔮','🪐','☄️','🌌','🧿','🪄','✨','🌙','💠','🌀','⭐','🌠','🛸','👽','🚀','🛰️','🌍','🌕','🌑','🌘','🌗','🌖','🌔','☀️','🌞','🌟','🌈','⚡','🌎','🔭','🪬','💫','🌃','🌠️','🪷'],
+    ['💎','🔮','🪐','☄️','🌌','🧿','🪄','✨','🌙','💠','🌀','⭐','🌠','🛸','👽','🚀','🛰️','🌍','🌕','🌑','🌘','🌗','🌖','🌔','☀️','🌞','🌟','🌈','⚡','🌎','🔭','🪬','💫','🌃','🧬','🪷'],
     ['🔥','⚡','🌊','🌪️','☀️','🌈','💥','🌟','🪩','💫','🧨','✨','🎇','🎆','🔆','🌞','🌤️','🌩️','🌫️','🌬️','💧','💦','🫧','🌀','🌋','🌡️','☄️','🌠','🔮','💎','🪐','🛸','🚀','⚙️','🔋','💡'],
   ];
   static const _tileColors = [
@@ -820,8 +820,20 @@ class _GardenTile extends StatelessWidget {
                 key: ValueKey(symbol),
                 width: 44,
                 height: 48,
-                child: CustomPaint(
-                  painter: _TileArtworkPainter(seed: symbol.runes.fold<int>(0, (sum, rune) => sum + rune), theme: tileTheme, highlighted: selected || hinted),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      painter: _TileArtworkPainter(seed: symbol.hashCode, theme: tileTheme, highlighted: selected || hinted),
+                    ),
+                    Center(
+                      child: Text(
+                        symbol,
+                        style: const TextStyle(fontSize: 10, height: 1),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )),
