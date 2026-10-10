@@ -39,6 +39,7 @@ String _tr(String language, String key) {
     'tileGarden':['Tile garden','Сад фишек','Jardín de fichas','Jardin de tuiles','Steingarten','Jardim de peças','Giardino di tessere','Taş bahçesi','麻将牌花园','牌の庭','타일 정원','टाइल बगीचा','حديقة القطع'],
     'exploreTiles':['Explore patterns and tile sets','Узоры и наборы фишек','Explora patrones y fichas','Explore les motifs et les tuiles','Muster und Steinsätze entdecken','Explore padrões e conjuntos','Esplora motivi e tessere','Desenleri ve taş setlerini keşfet','探索图案和牌组','模様と牌セットを探そう','패턴과 타일 세트 탐험','पैटर्न और टाइल सेट देखें','استكشف الأنماط ومجموعات القطع'],
     'breathe':['Breathe in. Match two. Breathe out.','Вдохни. Найди пару. Выдохни.','Respira. Encuentra dos. Exhala.','Respire. Trouve une paire. Expire.','Atmen. Zwei finden. Ausatmen.','Respire. Combine duas. Expire.','Respira. Abbina due. Espira.','Nefes al. İkiliyi eşleştir. Nefes ver.','深呼吸。配对两张。慢慢呼气。','息を吸って、二枚を合わせ、吐く。','숨을 쉬고, 두 개를 맞추고, 내쉬세요.','साँस लें। दो मिलाएँ। साँस छोड़ें।','تنفس. طابق قطعتين. ازفر.'],
+    'language':['Language / Язык','ЯЗЫК','IDIOMA','LANGUE','SPRACHE','IDIOMA','LINGUA','DİL','语言','言語','언어','भाषा','اللغة'],
     'settings':['Settings','Настройки','Ajustes','Paramètres','Einstellungen','Configurações','Impostazioni','Ayarlar','设置','設定','설정','सेटिंग्स','الإعدادات'],
     'sound':['Sound effects','Звуковые эффекты','Efectos de sonido','Effets sonores','Soundeffekte','Efeitos sonoros','Effetti sonori','Ses efektleri','音效','効果音','효과음','ध्वनि प्रभाव','المؤثرات الصوتية'],
     'haptics':['Haptic feedback','Виброотклик','Respuesta háptica','Retour haptique','Haptisches Feedback','Resposta tátil','Feedback aptico','Dokunsal geri bildirim','触觉反馈','触覚フィードバック','햅틱 피드백','हैप्टिक प्रतिक्रिया','الاستجابة اللمسية'],
@@ -66,8 +67,8 @@ String _tr(String language, String key) {
     'bestLevels':['Best completed levels on this device','Лучшие пройденные уровни на устройстве','Mejores niveles completados en este dispositivo','Meilleurs niveaux terminés sur cet appareil','Beste abgeschlossene Level auf diesem Gerät','Melhores níveis concluídos neste dispositivo','Migliori livelli completati su questo dispositivo','Bu cihazdaki en iyi tamamlanan seviyeler','本设备已完成的最佳关卡','この端末でクリアした最高レベル','이 기기에서 완료한 최고 레벨','इस डिवाइस पर पूरे किए गए सर्वश्रेष्ठ स्तर','أفضل المستويات المكتملة على هذا الجهاز'],
     'noRecords':['No records yet — finish your first level!','Записей пока нет — пройди первый уровень!','Aún no hay registros: ¡termina tu primer nivel!','Aucun record — termine ton premier niveau !','Noch keine Rekorde — schließe dein erstes Level ab!','Sem registros — conclua seu primeiro nível!','Nessun record — completa il primo livello!','Henüz kayıt yok — ilk seviyeni bitir!','暂无记录——完成第一关吧！','記録はありません。最初のレベルをクリアしよう！','기록이 없어요. 첫 레벨을 완료해 보세요!','अभी कोई रिकॉर्ड नहीं — पहला स्तर पूरा करें!','لا توجد سجلات بعد — أكمل المستوى الأول!'],
     'savedLocal':['Saved on this device; cloud sync is unavailable right now.','Сохранено на устройстве; облачная синхронизация сейчас недоступна.','Guardado en el dispositivo; la sincronización no está disponible.','Enregistré sur cet appareil ; synchronisation indisponible.','Lokal gespeichert; Cloud-Synchronisierung derzeit nicht verfügbar.','Salvo no dispositivo; sincronização indisponível agora.','Salvato sul dispositivo; sincronizzazione cloud non disponibile.','Cihaza kaydedildi; bulut eşitlemesi şu an kullanılamıyor.','已保存在本机；云同步暂不可用。','端末に保存しました。クラウド同期は現在利用できません。','기기에 저장됨. 클라우드 동기화는 현재 사용할 수 없어요.','डिवाइस पर सहेजा गया; क्लाउड सिंक अभी उपलब्ध नहीं।','حُفظ على الجهاز؛ المزامنة السحابية غير متاحة الآن.'],
-    'dailyPlanned':[_tr(language, 'dailyPlanned'),'Ежедневные испытания появятся в будущем обновлении.','Los retos diarios llegarán en una futura actualización.','Les défis quotidiens arriveront dans une prochaine mise à jour.','Tägliche Herausforderungen folgen in einem zukünftigen Update.','Desafios diários chegarão numa atualização futura.','Le sfide giornaliere arriveranno in un futuro aggiornamento.','Günlük görevler gelecek güncellemede eklenecek.','每日挑战将在未来版本推出。','デイリーチャレンジは今後の更新で追加予定です。','일일 도전은 향후 업데이트에서 제공됩니다.','दैनिक चुनौतियाँ भविष्य के अपडेट में आएँगी।','ستتوفر التحديات اليومية في تحديث قادم.'],
-    'multiplayerPlanned':[_tr(language, 'multiplayerPlanned'),'Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
+    'dailyPlanned':['Daily challenges are planned for a future update.','Ежедневные испытания появятся в будущем обновлении.','Los retos diarios llegarán en una futura actualización.','Les défis quotidiens arriveront dans une prochaine mise à jour.','Tägliche Herausforderungen folgen in einem zukünftigen Update.','Desafios diários chegarão numa atualização futura.','Le sfide giornaliere arriveranno in un futuro aggiornamento.','Günlük görevler gelecek güncellemede eklenecek.','每日挑战将在未来版本推出。','デイリーチャレンジは今後の更新で追加予定です。','일일 도전은 향후 업데이트에서 제공됩니다.','दैनिक चुनौतियाँ भविष्य के अपडेट में आएँगी।','ستتوفر التحديات اليومية في تحديث قادم.'],
+    'multiplayerPlanned':['Online multiplayer is planned; no live matches yet.','Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
   };
   final values = t[key];
   if (values == null) return key;
@@ -161,7 +162,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     const Spacer(flex: 2),
                     const Icon(Icons.wb_twilight_rounded, size: 44, color: Color(0xFFD58D59)),
                     const SizedBox(height: 12),
-                    const Text(_tr(language, 'welcomeTitle'), textAlign: TextAlign.center,
+                    Text(_tr(language, 'welcomeTitle'), textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 34, height: 1.12, fontWeight: FontWeight.w900, color: pine, letterSpacing: -.8)),
                     const SizedBox(height: 12),
                     Text(_tr(language, 'welcomeSubtitle'), textAlign: TextAlign.center,
@@ -234,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
         haptics: haptics,
       );
     } catch (error) {
-      if (mounted) _message(context, 'Saved on this device; cloud sync is unavailable right now.');
+      if (mounted) _message(context, _tr(language, 'savedLocal'));
     }
   }
 
@@ -278,12 +279,12 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(children: [Expanded(child: Text(_tr(language, 'yourJourney'), style: const TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900))), Text('${_tr(language, 'level')} $level / 10,000', style: const TextStyle(fontSize: 10, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800))]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: _tr(language, 'dailyDew'), subtitle: _tr(language, 'dailyChallenge'), color: const Color(0xFFF7D6A8), onTap: () => _message(context, 'Daily challenges are planned for a future update.'))),
+            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: _tr(language, 'dailyDew'), subtitle: _tr(language, 'dailyChallenge'), color: const Color(0xFFF7D6A8), onTap: () => _message(context, _tr(language, 'dailyPlanned')))),
             const SizedBox(width: 12),
             Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: _tr(language, 'trailRanks'), subtitle: _tr(language, 'climbLeaderboard'), color: const Color(0xFFC8DCC1), onTap: _showLeaderboard)),
           ]),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: () => _message(context, 'Online multiplayer is planned; no live matches yet.')),
+          _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: () => _message(context, _tr(language, 'multiplayerPlanned'))),
           const SizedBox(height: 12),
           _WideAction(icon: Icons.map_rounded, title: _tr(language, 'levelPath'), subtitle: _tr(language, 'chapters'), onTap: _showLevelPath),
           const SizedBox(height: 12),
@@ -323,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(22, 8, 22, 12),
-              child: Align(alignment: Alignment.centerLeft, child: Text('🌿 Level path', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
+              child: Align(alignment: Alignment.centerLeft, child: Text('🌿 ${_tr(language, 'levelPath')}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
             ),
             Expanded(child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -379,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
     child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(_tr(language, 'settings'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
       const SizedBox(height: 10),
-      const Text('LANGUAGE / ЯЗЫК', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      Text(_tr(language, 'language'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 6),
       DropdownButtonFormField<String>(
         value: language,
@@ -419,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(width: 48, height: 42, decoration: BoxDecoration(color: [[const Color(0xFFFFFDF6)], [const Color(0xFFFFD6E8)], [const Color(0xFFB8F2E6)], [const Color(0xFF22254B)]][i][0], borderRadius: BorderRadius.circular(13), border: Border.all(color: tileTheme == i ? pine : Colors.white, width: tileTheme == i ? 3 : 1)), child: Center(child: Text(['🌿','🌈','💎','✨'][i]))),
       ))),
       const SizedBox(height: 12),
-      Row(children: [const Expanded(child: Text(_tr(language, 'animationIntensity'), style: const TextStyle(color: pine, fontWeight: FontWeight.w700))), Text([_tr(language, 'low'),_tr(language, 'normal'),_tr(language, 'extra')][animationLevel], style: const TextStyle(color: pine))]),
+      Row(children: [Expanded(child: Text(_tr(language, 'animationIntensity'), style: const TextStyle(color: pine, fontWeight: FontWeight.w700))), Text([_tr(language, 'low'),_tr(language, 'normal'),_tr(language, 'extra')][animationLevel], style: const TextStyle(color: pine))]),
       Slider(value: animationLevel.toDouble(), min: 0, max: 2, divisions: 2, activeColor: pine, onChanged: (v) async { setState(() => animationLevel = v.round()); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.animation.level', v.round()); }),
       const SizedBox(height: 8),
       Text(_tr(language, 'preferencesNote'), style: const TextStyle(color: Colors.black54, fontSize: 12)),
