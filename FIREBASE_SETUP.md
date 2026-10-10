@@ -5,7 +5,7 @@ This guide configures real Firebase Authentication and Firestore. The source int
 ## 1. Create/register the Firebase apps
 
 1. Open the [Firebase Console](https://console.firebase.google.com/) and create a project.
-2. Add an Android app using the exact Android application ID you choose for the Flutter project. Record its Firebase **App ID** and API key.
+2. Add an Android app using the exact Android application ID used by the generated native project. The current CI workflow generates `com.example.fita_mahjong` as a temporary default. Before production, choose a unique final ID and update the Flutter project-generation command plus the Firebase Android registration together. Record its Firebase **App ID** and API key.
 3. Add an iOS app using a stable reverse-DNS bundle ID, for example `com.example.fitamahjong` (choose your final ID before release). Record its Firebase **App ID** and API key.
 4. In Project settings → General, record the **Project ID** and **Project number** (used as Messaging Sender ID).
 5. The runtime config in `lib/config/firebase_runtime_config.dart` initializes Firebase with platform-specific options. Native `google-services.json` / `GoogleService-Info.plist` files are not required by this particular initialization path, but can be added if you later adopt the standard FlutterFire generated configuration. Do not commit service-account credentials or private keys.
