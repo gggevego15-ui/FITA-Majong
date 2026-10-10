@@ -222,7 +222,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         const SizedBox(width: 12),
                         const Text('FITA', style: TextStyle(fontSize: 19, letterSpacing: 4, fontWeight: FontWeight.w900, color: pine)),
                         const Spacer(),
-                        Material(color: Colors.white.withValues(alpha: .88), borderRadius: BorderRadius.circular(16), child: InkWell(borderRadius: BorderRadius.circular(16), onTap: _showLanguagePicker, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.language_rounded, color: pine, size: 18), const SizedBox(width: 6), Text(language.toUpperCase(), style: const TextStyle(color: pine, fontSize: 12, fontWeight: FontWeight.w900)), const SizedBox(width: 4), const Icon(Icons.keyboard_arrow_down_rounded, color: pine, size: 18)]))),
+                        Material(color: Colors.white.withValues(alpha: .88), borderRadius: BorderRadius.circular(16), child: InkWell(borderRadius: BorderRadius.circular(16), onTap: _showLanguagePicker, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.language_rounded, color: pine, size: 18), const SizedBox(width: 6), Text(language.toUpperCase(), style: const TextStyle(color: pine, fontSize: 12, fontWeight: FontWeight.w900)), const SizedBox(width: 4), const Icon(Icons.keyboard_arrow_down_rounded, color: pine, size: 18)])))),
                       ],
                     ),
                     const Spacer(flex: 2),
@@ -1082,7 +1082,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
-          ))));
+          )));
         })),
         const SizedBox(height: 10),
         Row(children: [
