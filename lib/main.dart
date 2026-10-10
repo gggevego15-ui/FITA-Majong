@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'services/auth_service.dart';
 import 'services/progress_store.dart';
@@ -187,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: double.infinity, height: 48, child: FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: cream, foregroundColor: pine, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 onPressed: () async {
-                  final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level)));
+                  final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level, sound: sound, haptics: haptics)));
                   if (won == true && mounted) {
                     setState(() => level++);
                     await _saveProgress();
@@ -233,88 +234,335 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class GameScreen extends StatefulWidget {
   final int level;
-  const GameScreen({super.key, required this.level});
+  final bool sound;
+  final bool haptics;
+  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+  static const _garden = ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷'];
   late List<String> tiles;
   final Set<int> removed = {};
   int? selected;
+  int? mismatch;
   int moves = 0;
-  int seconds = 0;
+  int pairs = 8;
+  bool busy = false;
+  bool finished = false;
+  int? hintA;
+  int? hintB;
+  late final AnimationController _winController;
+  late final Stopwatch _clock;
+  String get elapsed {
+    final s = _clock.elapsed.inSeconds;
+    return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
-    final symbols = ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷'];
-    final rng = Random(widget.level * 19 + 7);
-    tiles = [...symbols.take(8), ...symbols.take(8)]..shuffle(rng);
+    _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
+    _clock = Stopwatch()..start();
+    _newBoard();
   }
 
-  bool _exposed(int i) {
-    if (removed.contains(i)) return false;
-    // Simple one-layer prototype: every remaining tile is selectable.
-    return true;
+  void _newBoard() {
+    final symbols = _garden.take(8).toList();
+    final rng = Random(widget.level * 19 + DateTime.now().millisecondsSinceEpoch % 997);
+    tiles = [...symbols, ...symbols]..shuffle(rng);
+    removed.clear();
+    selected = null;
+    mismatch = null;
+    hintA = null;
+    hintB = null;
+    moves = 0;
+    pairs = 8;
+    busy = false;
+    finished = false;
+    _clock
+      ..reset()
+      ..start();
   }
 
-  void _tap(int i) {
-    if (!_exposed(i)) return;
+  void _feedback({bool success = false}) {
+    if (widget.haptics) {
+      if (success) {
+        // Two light taps communicate a successful match without being intrusive.
+        HapticFeedback.lightImpact();
+      } else {
+        HapticFeedback.selectionClick();
+      }
+    }
+    if (widget.sound) {
+      SystemSound.play(success ? SystemSoundType.alert : SystemSoundType.click);
+    }
+  }
+
+  Future<void> _tap(int i) async {
+    if (busy || finished || removed.contains(i)) return;
+    if (selected == i) {
+      setState(() => selected = null);
+      return;
+    }
+    if (selected == null) {
+      setState(() {
+        selected = i;
+        hintA = null;
+        hintB = null;
+      });
+      _feedback();
+      return;
+    }
+
+    final first = selected!;
     setState(() {
-      if (selected == null) { selected = i; return; }
-      if (selected == i) { selected = null; return; }
       moves++;
-      if (tiles[selected!] == tiles[i]) {
-        removed.add(selected!);
+      hintA = null;
+      hintB = null;
+    });
+    if (tiles[first] == tiles[i]) {
+      _feedback(success: true);
+      setState(() {
+        removed.add(first);
         removed.add(i);
         selected = null;
-      } else {
-        selected = i;
+        pairs--;
+      });
+      if (pairs == 0) {
+        finished = true;
+        _clock.stop();
+        await _winController.forward(from: 0);
+        if (mounted) _showWin();
       }
-    });
-    if (removed.length == tiles.length) {
-      Future.delayed(const Duration(milliseconds: 250), () {
-        if (mounted) Navigator.of(context).pop(true);
+    } else {
+      _feedback();
+      setState(() {
+        mismatch = i;
+        busy = true;
+      });
+      await Future.delayed(const Duration(milliseconds: 420));
+      if (!mounted) return;
+      setState(() {
+        mismatch = null;
+        selected = null;
+        busy = false;
       });
     }
   }
 
+  void _hint() {
+    if (busy || finished) return;
+    for (var i = 0; i < tiles.length; i++) {
+      if (removed.contains(i)) continue;
+      for (var j = i + 1; j < tiles.length; j++) {
+        if (!removed.contains(j) && tiles[i] == tiles[j]) {
+          setState(() {
+            selected = null;
+            hintA = i;
+            hintB = j;
+          });
+          if (widget.haptics) HapticFeedback.selectionClick();
+          return;
+        }
+      }
+    }
+  }
+
+  void _shuffle() {
+    if (busy || finished) return;
+    setState(() {
+      final remaining = <String>[];
+      for (var i = 0; i < tiles.length; i++) {
+        if (!removed.contains(i)) remaining.add(tiles[i]);
+      }
+      remaining.shuffle(Random(DateTime.now().millisecondsSinceEpoch));
+      var cursor = 0;
+      for (var i = 0; i < tiles.length; i++) {
+        if (!removed.contains(i)) tiles[i] = remaining[cursor++];
+      }
+      selected = null;
+      mismatch = null;
+      hintA = null;
+      hintB = null;
+    });
+    _feedback();
+  }
+
+  void _showWin() {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ScaleTransition(
+        scale: CurvedAnimation(parent: _winController, curve: Curves.elasticOut),
+        child: AlertDialog(
+          backgroundColor: cream,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          icon: const Icon(Icons.celebration_rounded, size: 48, color: Color(0xFFD58D59)),
+          title: const Text('Garden restored!', textAlign: TextAlign.center, style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
+          content: Text('You matched every pair in $moves moves · $elapsed', textAlign: TextAlign.center),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Navigator.of(context).pop(true);
+              },
+              child: const Text('Next level'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _winController.dispose();
+    _clock.stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(backgroundColor: cream, foregroundColor: pine, title: Text('Garden · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)), centerTitle: true),
+    appBar: AppBar(
+      backgroundColor: cream,
+      foregroundColor: pine,
+      title: Text('Garden · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      centerTitle: true,
+      actions: [
+        IconButton(tooltip: 'Hint', onPressed: _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
+      ],
+    ),
     body: Stack(children: [
       const Positioned.fill(child: NatureBackdrop()),
-      SafeArea(child: Padding(padding: const EdgeInsets.all(16), child: Column(children: [
+      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: Column(children: [
         Row(children: [
           _StatPill(label: 'MOVES', value: '$moves'),
           const Spacer(),
-          _StatPill(label: 'PAIRS LEFT', value: '${(tiles.length - removed.length) ~/ 2}'),
+          _StatPill(label: 'TIME', value: elapsed),
+          const Spacer(),
+          _StatPill(label: 'PAIRS', value: '$pairs'),
         ]),
-        const SizedBox(height: 18),
-        Expanded(child: Center(child: Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 10, children: List.generate(tiles.length, (i) {
-          final gone = removed.contains(i);
-          final active = selected == i;
-          return AnimatedOpacity(opacity: gone ? 0 : 1, duration: const Duration(milliseconds: 180), child: SizedBox(width: 66, height: 78, child: gone ? const SizedBox.shrink() : Material(
-            color: active ? const Color(0xFFFFDDAA) : const Color(0xFFFFFDF6),
-            elevation: active ? 7 : 2,
-            borderRadius: BorderRadius.circular(15),
-            child: InkWell(borderRadius: BorderRadius.circular(15), onTap: () => _tap(i), child: Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), border: Border.all(color: active ? peach : const Color(0xFFD5DFC9), width: active ? 2 : 1)),
-              child: Center(child: Text(tiles[i], style: const TextStyle(fontSize: 29))),
-            )),
-          )));
-        })))),
-        const Text('Match two identical garden tiles', style: TextStyle(color: pine, fontWeight: FontWeight.w700)),
         const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(color: Colors.white.withOpacity(.72), borderRadius: BorderRadius.circular(14)),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.spa_rounded, color: leaf, size: 18),
+            const SizedBox(width: 8),
+            Text(finished ? 'Beautifully done!' : 'Find two matching garden tiles', style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        Expanded(child: Center(child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420, maxHeight: 500),
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(5),
+            itemCount: tiles.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 9,
+              childAspectRatio: .78,
+            ),
+            itemBuilder: (context, i) {
+              final gone = removed.contains(i);
+              final active = selected == i;
+              final hinted = hintA == i || hintB == i;
+              final wrong = mismatch == i || mismatch == selected;
+              return AnimatedScale(
+                scale: gone ? .72 : active ? 1.04 : 1,
+                duration: const Duration(milliseconds: 190),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  opacity: gone ? 0 : 1,
+                  duration: const Duration(milliseconds: 220),
+                  child: gone
+                      ? const SizedBox.shrink()
+                      : _GardenTile(
+                          symbol: tiles[i],
+                          selected: active,
+                          hinted: hinted,
+                          wrong: wrong,
+                          onTap: () => _tap(i),
+                        ),
+                ),
+              );
+            },
+          ),
+        ))),
+        const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: OutlinedButton.icon(onPressed: () => setState(() { selected = null; }), icon: const Icon(Icons.close_rounded), label: const Text('Deselect'))),
+          Expanded(child: OutlinedButton.icon(
+            onPressed: busy || finished ? null : () => setState(() { selected = null; hintA = null; hintB = null; }),
+            icon: const Icon(Icons.close_rounded), label: const Text('Deselect'),
+          )),
           const SizedBox(width: 10),
-          Expanded(child: FilledButton.icon(onPressed: () => setState(() { tiles.shuffle(Random(widget.level + moves)); selected = null; }), icon: const Icon(Icons.shuffle_rounded), label: const Text('Shuffle'))),
+          Expanded(child: FilledButton.icon(
+            onPressed: busy || finished ? null : _shuffle,
+            style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
+            icon: const Icon(Icons.shuffle_rounded), label: const Text('Shuffle'),
+          )),
         ]),
       ]))),
     ]),
   );
+}
+
+class _GardenTile extends StatelessWidget {
+  final String symbol;
+  final bool selected;
+  final bool hinted;
+  final bool wrong;
+  final VoidCallback onTap;
+  const _GardenTile({required this.symbol, required this.selected, required this.hinted, required this.wrong, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = wrong
+        ? const Color(0xFFD77B66)
+        : selected
+            ? const Color(0xFFD58D59)
+            : hinted
+                ? const Color(0xFF6F9E78)
+                : const Color(0xFFD5DFC9);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFFFFE4B5) : const Color(0xFFFFFDF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
+        boxShadow: [
+          BoxShadow(color: pine.withOpacity(selected ? .2 : .1), blurRadius: selected ? 13 : 6, offset: Offset(0, selected ? 6 : 3)),
+          const BoxShadow(color: Colors.white, blurRadius: 0, offset: Offset(-1, -1)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Stack(children: [
+            Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
+            Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
+            Center(child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
+              child: Text(symbol, key: ValueKey(symbol), style: const TextStyle(fontSize: 30)),
+            )),
+            if (hinted)
+              const Positioned(right: 5, top: 4, child: Icon(Icons.auto_awesome_rounded, size: 14, color: leaf)),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 class _StatPill extends StatelessWidget {
