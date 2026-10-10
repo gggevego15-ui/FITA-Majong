@@ -122,6 +122,64 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   void initState() { super.initState(); SharedPreferences.getInstance().then((p) { if (mounted) setState(() => language = p.getString('fita.language') ?? 'en'); }); }
   Future<void> _setLanguage(String value) async { final p = await SharedPreferences.getInstance(); await p.setString('fita.language', value); if (mounted) setState(() => language = value); }
 
+  Future<void> _showLanguagePicker() async {
+    const languages = <(String, String, String)>[
+      ('en', '🇬🇧', 'English'), ('ru', '🇷🇺', 'Русский'),
+      ('es', '🇪🇸', 'Español'), ('fr', '🇫🇷', 'Français'),
+      ('de', '🇩🇪', 'Deutsch'), ('pt', '🇵🇹', 'Português'),
+      ('it', '🇮🇹', 'Italiano'), ('tr', '🇹🇷', 'Türkçe'),
+      ('zh', '🇨🇳', '中文'), ('ja', '🇯🇵', '日本語'),
+      ('ko', '🇰🇷', '한국어'), ('hi', '🇮🇳', 'हिन्दी'),
+      ('ar', '🇸🇦', 'العربية'),
+    ];
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFFFFF8EC),
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Choose your language', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: pine)),
+            const SizedBox(height: 5),
+            Text('Выберите язык · 13 languages available', style: TextStyle(fontSize: 12, color: pine.withValues(alpha: .68))),
+            const SizedBox(height: 16),
+            Flexible(child: GridView.builder(
+              shrinkWrap: true,
+              itemCount: languages.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 9, crossAxisSpacing: 9, childAspectRatio: 2.45),
+              itemBuilder: (context, index) {
+                final item = languages[index];
+                final selectedLanguage = item.$1 == language;
+                return Material(
+                  color: selectedLanguage ? const Color(0xFFDDEBDD) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => Navigator.of(sheetContext).pop(item.$1),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: selectedLanguage ? leaf : const Color(0xFFE8E2D6), width: selectedLanguage ? 2 : 1)),
+                      child: Row(children: [
+                        Text(item.$2, style: const TextStyle(fontSize: 22)),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(item.$3, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: pine, fontSize: 12, fontWeight: FontWeight.w800))),
+                        if (selectedLanguage) const Icon(Icons.check_circle_rounded, color: leaf, size: 17),
+                      ]),
+                    ),
+                  ),
+                );
+              },
+            )),
+          ]),
+        ),
+      ),
+    );
+    if (chosen != null) await _setLanguage(chosen);
+  }
+
   Future<void> _continueAsGuest() async {
     setState(() => _busy = true);
     try {
@@ -164,7 +222,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         const SizedBox(width: 12),
                         const Text('FITA', style: TextStyle(fontSize: 19, letterSpacing: 4, fontWeight: FontWeight.w900, color: pine)),
                         const Spacer(),
-                        DropdownButton<String>(value: language, underline: const SizedBox.shrink(), items: const [DropdownMenuItem(value:'en',child:Text('EN')),DropdownMenuItem(value:'ru',child:Text('RU')),DropdownMenuItem(value:'es',child:Text('ES')),DropdownMenuItem(value:'fr',child:Text('FR')),DropdownMenuItem(value:'de',child:Text('DE')),DropdownMenuItem(value:'pt',child:Text('PT')),DropdownMenuItem(value:'it',child:Text('IT')),DropdownMenuItem(value:'tr',child:Text('TR')),DropdownMenuItem(value:'zh',child:Text('中文')),DropdownMenuItem(value:'ja',child:Text('日本語')),DropdownMenuItem(value:'ko',child:Text('한국어')),DropdownMenuItem(value:'hi',child:Text('हिन्दी')),DropdownMenuItem(value:'ar',child:Text('عربي'))], onChanged: (v) { if (v != null) _setLanguage(v); }),
+                        Material(color: Colors.white.withValues(alpha: .88), borderRadius: BorderRadius.circular(16), child: InkWell(borderRadius: BorderRadius.circular(16), onTap: _showLanguagePicker, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.language_rounded, color: pine, size: 18), const SizedBox(width: 6), Text(language.toUpperCase(), style: const TextStyle(color: pine, fontSize: 12, fontWeight: FontWeight.w900)), const SizedBox(width: 4), const Icon(Icons.keyboard_arrow_down_rounded, color: pine, size: 18)]))),
                       ],
                     ),
                     const Spacer(flex: 2),
@@ -984,9 +1042,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 11.5, (constraints.maxHeight - 8) / 9.0).clamp(28.0, 54.0).toDouble();
+          final tileWidth = min((constraints.maxWidth - 8) / 9.5, (constraints.maxHeight - 8) / 7.5).clamp(34.0, 62.0).toDouble();
           final tileHeight = tileWidth * 1.08;
-          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Center(child: SizedBox(
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(
             width: tileWidth * 14.5,
             height: tileHeight * 10.35,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
@@ -997,19 +1055,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               final wrong = mismatch == i || mismatch == selected;
               final enabled = _availableInState(i, spots, removed);
               final tileKey = _tileKeys.putIfAbsent(i, () => GlobalKey());
-              return AnimatedPositioned(
-                duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : widget.animationLevel == 1 ? 180 : 300),
-                curve: Curves.easeOutBack,
+              return Positioned(
                 left: spot.x * tileWidth * .94 + spot.layer * tileWidth * .10,
                 top: (spot.y + 1) * tileHeight * .94 - spot.layer * tileHeight * .18,
                 width: tileWidth,
                 height: tileHeight,
-                child: AnimatedScale(
-                  scale: gone ? .65 : active ? 1.06 : hinted ? 1.04 : 1,
-                  duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : 200),
-                  child: AnimatedOpacity(
-                    opacity: gone ? 0 : enabled ? 1 : .58,
-                    duration: const Duration(milliseconds: 180),
+                child: Transform.scale(
+                  scale: gone ? .92 : active ? 1.06 : hinted ? 1.04 : 1,
+                  child: Opacity(
+                    opacity: gone ? 0 : enabled ? 1 : .62,
                     child: IgnorePointer(
                       ignoring: gone,
                       child: _GardenTile(
@@ -1260,17 +1314,12 @@ class _GardenTile extends StatelessWidget {
             : hinted
                 ? const Color(0xFF6F9E78)
                 : const Color(0xFFD5DFC9);
-    return AnimatedContainer(
-      duration: Duration(milliseconds: animationLevel == 0 ? 90 : animationLevel == 1 ? 180 : 320),
-      curve: Curves.easeOut,
+    return Container(
       decoration: BoxDecoration(
         color: selected ? tileColors[1] : tileColors[0],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
-        boxShadow: [
-          BoxShadow(color: pine.withValues(alpha: selected ? .2 : .1), blurRadius: selected ? 13 : 6, offset: Offset(0, selected ? 6 : 3)),
-          const BoxShadow(color: Colors.white, blurRadius: 0, offset: Offset(-1, -1)),
-        ],
+        boxShadow: selected || hinted || wrong ? [BoxShadow(color: pine.withValues(alpha: .18), blurRadius: 8, offset: const Offset(0, 3))] : const [],
       ),
       child: Material(
         color: Colors.transparent,
@@ -1280,13 +1329,9 @@ class _GardenTile extends StatelessWidget {
           child: Stack(children: [
             Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
             Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
-            Center(child: AnimatedSwitcher(
-              duration: Duration(milliseconds: animationLevel == 0 ? 90 : 180),
-              transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
-              child: SizedBox(
-                key: ValueKey(symbol),
-                width: 30,
-                height: 32,
+            Center(child: SizedBox(
+                width: double.infinity,
+                height: double.infinity,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -1296,14 +1341,13 @@ class _GardenTile extends StatelessWidget {
                     Center(
                       child: Text(
                         symbol,
-                        style: const TextStyle(fontSize: 10, height: 1),
+                        style: const TextStyle(fontSize: 23, height: 1.05),
                         textAlign: TextAlign.center,
                       ),
                     ),
                   ],
                 ),
-              ),
-            )),
+              )),
             if (hinted)
               const Positioned(right: 5, top: 4, child: Icon(Icons.auto_awesome_rounded, size: 14, color: leaf)),
           ]),
