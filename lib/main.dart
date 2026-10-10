@@ -473,6 +473,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late List<_TileSpot> spots;
   int burst = 0;
   int matchStreak = 0;
+  int bestComboStreak = 0;
   int activeComboLevel = 0;
   int comboPopupLevel = 0;
   Timer? _comboPopupTimer;
@@ -503,6 +504,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) setState(() => bestComboStreak = prefs.getInt('fita.combo.bestStreak') ?? 0);
+    });
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
     _flightController = AnimationController(vsync: this, duration: Duration(milliseconds: widget.animationLevel == 0 ? 180 : 420));
     _flightController.addStatusListener((status) {
@@ -518,6 +522,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _newBoard();
   }
 
+
+  Future<void> _recordComboStreak() async {
+    if (matchStreak <= bestComboStreak) return;
+    final newRecord = matchStreak;
+    if (mounted) setState(() => bestComboStreak = newRecord);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getInt('fita.combo.bestStreak') ?? 0;
+      if (newRecord > stored) await prefs.setInt('fita.combo.bestStreak', newRecord);
+    } catch (_) {
+      // Keep the in-memory record for this session if local storage is unavailable.
+    }
+  }
 
   bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
       MahjongRules.isAvailable(index, layout, gone);
@@ -713,6 +730,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     if (tiles[first] == tiles[i]) {
       matchStreak++;
+      _recordComboStreak();
       final comboLevel = matchStreak == 10 ? 3 : matchStreak == 5 ? 2 : matchStreak == 3 ? 1 : 0;
       activeComboLevel = widget.comboEffects ? comboLevel : 0;
       comboPopupLevel = widget.comboEffects ? comboLevel : 0;
@@ -909,7 +927,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           const Spacer(),
           _StatPill(label: _gameLabel(widget.language, 'pairs'), value: '${removed.length ~/ 2}/72'),
         ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
+        Align(alignment: Alignment.centerRight, child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(color: const Color(0xFFFFC857).withValues(alpha: .22), borderRadius: BorderRadius.circular(13), border: Border.all(color: const Color(0xFFFFC857).withValues(alpha: .65))),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.emoji_events_rounded, color: Color(0xFFB77900), size: 16),
+            const SizedBox(width: 6),
+            Text(_gameLabel(widget.language, 'bestCombo'), style: const TextStyle(fontSize: 9, letterSpacing: .7, color: pine, fontWeight: FontWeight.w800)),
+            const SizedBox(width: 8),
+            Text('x$bestComboStreak', style: const TextStyle(fontSize: 15, color: pine, fontWeight: FontWeight.w900)),
+          ]),
+        )),
+        const SizedBox(height: 10),
         Row(
           children: List.generate(4, (slot) => Expanded(
             child: Padding(
@@ -1019,19 +1049,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
 String _gameLabel(String language, String key) {
   const labels = <String, Map<String, String>>{
-    'en': {'moves': 'MOVES', 'time': 'TIME', 'pairs': 'PAIRS'},
-    'ru': {'moves': 'ХОДЫ', 'time': 'ВРЕМЯ', 'pairs': 'ПАРЫ'},
-    'es': {'moves': 'MOVIMIENTOS', 'time': 'TIEMPO', 'pairs': 'PAREJAS'},
-    'fr': {'moves': 'COUPS', 'time': 'TEMPS', 'pairs': 'PAIRES'},
-    'de': {'moves': 'ZÜGE', 'time': 'ZEIT', 'pairs': 'PAARE'},
-    'pt': {'moves': 'JOGADAS', 'time': 'TEMPO', 'pairs': 'PARES'},
-    'it': {'moves': 'MOSSE', 'time': 'TEMPO', 'pairs': 'COPPIE'},
-    'tr': {'moves': 'HAMLE', 'time': 'SÜRE', 'pairs': 'ÇİFTLER'},
-    'zh': {'moves': '步数', 'time': '时间', 'pairs': '配对'},
-    'ja': {'moves': '手数', 'time': '時間', 'pairs': 'ペア'},
-    'ko': {'moves': '이동', 'time': '시간', 'pairs': '쌍'},
-    'hi': {'moves': 'चालें', 'time': 'समय', 'pairs': 'जोड़े'},
-    'ar': {'moves': 'الحركات', 'time': 'الوقت', 'pairs': 'الأزواج'},
+    'en': {'moves': 'MOVES', 'time': 'TIME', 'pairs': 'PAIRS', 'bestCombo': 'BEST COMBO'},
+    'ru': {'moves': 'ХОДЫ', 'time': 'ВРЕМЯ', 'pairs': 'ПАРЫ', 'bestCombo': 'РЕКОРД КОМБО'},
+    'es': {'moves': 'MOVIMIENTOS', 'time': 'TIEMPO', 'pairs': 'PAREJAS', 'bestCombo': 'MEJOR COMBO'},
+    'fr': {'moves': 'COUPS', 'time': 'TEMPS', 'pairs': 'PAIRES', 'bestCombo': 'MEILLEUR COMBO'},
+    'de': {'moves': 'ZÜGE', 'time': 'ZEIT', 'pairs': 'PAARE', 'bestCombo': 'BESTE KOMBINATION'},
+    'pt': {'moves': 'JOGADAS', 'time': 'TEMPO', 'pairs': 'PARES', 'bestCombo': 'MELHOR COMBO'},
+    'it': {'moves': 'MOSSE', 'time': 'TEMPO', 'pairs': 'COPPIE', 'bestCombo': 'MIGLIOR COMBO'},
+    'tr': {'moves': 'HAMLE', 'time': 'SÜRE', 'pairs': 'ÇİFTLER', 'bestCombo': 'EN İYİ KOMBO'},
+    'zh': {'moves': '步数', 'time': '时间', 'pairs': '配对', 'bestCombo': '最佳连击'},
+    'ja': {'moves': '手数', 'time': '時間', 'pairs': 'ペア', 'bestCombo': '最高コンボ'},
+    'ko': {'moves': '이동', 'time': '시간', 'pairs': '쌍', 'bestCombo': '최고 콤보'},
+    'hi': {'moves': 'चालें', 'time': 'समय', 'pairs': 'जोड़े', 'bestCombo': 'सर्वश्रेष्ठ कॉम्बो'},
+    'ar': {'moves': 'الحركات', 'time': 'الوقت', 'pairs': 'الأزواج', 'bestCombo': 'أفضل كومبو'},
   };
   return labels[language]?[key] ?? labels['en']![key]!;
 }
