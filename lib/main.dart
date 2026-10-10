@@ -1042,8 +1042,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 9.5, (constraints.maxHeight - 8) / 7.5).clamp(34.0, 62.0).toDouble();
-          final tileHeight = tileWidth * 1.08;
+          final tileWidth = min((constraints.maxWidth - 8) / 9.5, (constraints.maxHeight - 8) / 7.5).clamp(40.0, 70.0).toDouble();
+          final tileHeight = tileWidth;
           return SingleChildScrollView(scrollDirection: Axis.vertical, physics: const ClampingScrollPhysics(), child: SingleChildScrollView(scrollDirection: Axis.horizontal, physics: const ClampingScrollPhysics(), child: SizedBox(
             width: tileWidth * 14.5,
             height: tileHeight * 10.35,
@@ -1317,14 +1317,14 @@ class _GardenTile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: selected ? tileColors[1] : tileColors[0],
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
         boxShadow: selected || hinted || wrong ? [BoxShadow(color: pine.withValues(alpha: .18), blurRadius: 8, offset: const Offset(0, 3))] : const [],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: Stack(children: [
             Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
@@ -1341,7 +1341,7 @@ class _GardenTile extends StatelessWidget {
                     Center(
                       child: Text(
                         symbol,
-                        style: const TextStyle(fontSize: 23, height: 1.05),
+                        style: const TextStyle(fontSize: 28, height: 1.0),
                         textAlign: TextAlign.center,
                       ),
                     ),
