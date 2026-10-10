@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -480,6 +482,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final Map<int, GlobalKey> _tileKeys = <int, GlobalKey>{};
   OverlayEntry? _flightEntry;
   late final Stopwatch _clock;
+  final AudioPlayer _matchPlayer = AudioPlayer();
   Timer? _ticker;
   String get elapsed {
     final s = _clock.elapsed.inSeconds;
@@ -586,6 +589,57 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _clock..reset()..start();
   }
 
+  Uint8List _buildBurstWav() {
+    // A tiny synthesized, offline burst: descending low tone + filtered-noise crackle.
+    const sampleRate = 11025;
+    const sampleCount = 3528;
+    final random = Random(41);
+    final bytes = Uint8List(44 + sampleCount * 2);
+    final header = ByteData.sublistView(bytes);
+    void writeTag(int offset, String tag) {
+      for (var i = 0; i < tag.length; i++) {
+        bytes[offset + i] = tag.codeUnitAt(i);
+      }
+    }
+    writeTag(0, 'RIFF');
+    header.setUint32(4, bytes.length - 8, Endian.little);
+    writeTag(8, 'WAVE');
+    writeTag(12, 'fmt ');
+    header.setUint32(16, 16, Endian.little);
+    header.setUint16(20, 1, Endian.little);
+    header.setUint16(22, 1, Endian.little);
+    header.setUint32(24, sampleRate, Endian.little);
+    header.setUint32(28, sampleRate * 2, Endian.little);
+    header.setUint16(32, 2, Endian.little);
+    header.setUint16(34, 16, Endian.little);
+    writeTag(36, 'data');
+    header.setUint32(40, sampleCount * 2, Endian.little);
+    for (var i = 0; i < sampleCount; i++) {
+      final t = i / sampleRate;
+      final envelope = (1 - exp(-t * 100)) * exp(-t * 9);
+      final frequency = 150 - 95 * (t / .32);
+      final body = sin(2 * pi * (frequency * t - 20 * t * t)) * .62;
+      final noise = (random.nextDouble() * 2 - 1) * .42;
+      final crackle = random.nextDouble() < .3
+          ? (random.nextDouble() * 2 - 1) * .28
+          : 0.0;
+      final sample = ((body + noise + crackle) * envelope * 25000)
+          .round()
+          .clamp(-32768, 32767);
+      header.setInt16(44 + i * 2, sample, Endian.little);
+    }
+    return bytes;
+  }
+
+  Future<void> _playMatchBurst() async {
+    try {
+      await _matchPlayer.stop();
+      await _matchPlayer.play(BytesSource(_buildBurstWav()));
+    } catch (_) {
+      // Sound is optional; matching and animations must work if audio is unavailable.
+    }
+  }
+
   void _feedback({bool success = false}) {
     if (widget.haptics) {
       if (success) {
@@ -596,7 +650,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     }
     if (widget.sound) {
-      SystemSound.play(success ? SystemSoundType.alert : SystemSoundType.click);
+      if (success) {
+        unawaited(_playMatchBurst());
+      } else {
+        SystemSound.play(SystemSoundType.click);
+      }
     }
   }
 
