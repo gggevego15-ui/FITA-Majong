@@ -835,7 +835,7 @@ class _GardenTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tileColors = _GameScreenState._tileColors[tileTheme.clamp(0, 3)];
+    final tileColors = _GameScreenState._tileColors[tileTheme.clamp(0, 3).toInt()];
     final borderColor = wrong
         ? const Color(0xFFD77B66)
         : selected
