@@ -43,9 +43,22 @@ class MahjongRules {
   /// The layout has 96 base tiles, then 24, 16 and 8 tiles on upper terraces.
   static List<TileSpot> classicTurtleLayout() {
     final layout = <TileSpot>[];
-    for (var y = 0; y < 8; y++) {
-      for (var x = 0; x < 12; x++) {
-        layout.add(TileSpot(x: x, y: y, layer: 0));
+    // Base layer silhouette: narrow tail, shoulders, wide shell, and head.
+    final baseRows = <int, List<int>>{
+      -1: [6, 7],
+      0: List.generate(8, (i) => i + 3),
+      1: List.generate(12, (i) => i + 1),
+      2: List.generate(14, (i) => i),
+      3: List.generate(14, (i) => i),
+      4: List.generate(12, (i) => i + 1),
+      5: List.generate(12, (i) => i + 1),
+      6: List.generate(12, (i) => i + 1),
+      7: List.generate(8, (i) => i + 3),
+      8: [6, 7],
+    };
+    for (final row in baseRows.entries) {
+      for (final x in row.value) {
+        layout.add(TileSpot(x: x, y: row.key, layer: 0));
       }
     }
     for (var y = 2; y < 6; y++) {
