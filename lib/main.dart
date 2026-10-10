@@ -650,7 +650,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7).clamp(34.0, 78.0);
+          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7).clamp(34.0, 78.0).toDouble();
           final tileHeight = tileWidth * 1.08;
           return Center(child: SizedBox(
             width: tileWidth * 4.35,
