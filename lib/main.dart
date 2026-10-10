@@ -1031,7 +1031,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         selected = null;
         pairs--;
       });
-      unawaited(_syncRoomProgress());
+      if (pairs > 0) unawaited(_syncRoomProgress());
       Future.delayed(const Duration(milliseconds: 420), () { if (mounted) setState(() => shaking = false); });
       if (pairs == 0) {
         finished = true;
