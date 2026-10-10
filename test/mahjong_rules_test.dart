@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fita_mahjong/game/mahjong_rules.dart';
 
 void main() {
+  group('classic 144-tile layout', () {
+    test('contains 144 tiles across four layers', () {
+      final layout = MahjongRules.classicTurtleLayout();
+      expect(layout, hasLength(144));
+      expect(layout.where((tile) => tile.layer == 0), hasLength(96));
+      expect(layout.where((tile) => tile.layer == 1), hasLength(24));
+      expect(layout.where((tile) => tile.layer == 2), hasLength(16));
+      expect(layout.where((tile) => tile.layer == 3), hasLength(8));
+    });
+
+    test('provides a complete legal removal order', () {
+      final layout = MahjongRules.classicTurtleLayout();
+      final order = MahjongRules.classicRemovalOrder(layout);
+      expect(order, hasLength(144));
+      expect(MahjongRules.isValidRemovalOrder(layout, order), isTrue);
+    });
+  });
+
   group('MahjongRules.isAvailable', () {
     test('allows an edge tile when the opposite side is open', () {
       const layout = [
