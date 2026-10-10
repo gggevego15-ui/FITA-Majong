@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'services/auth_service.dart';
 import 'services/progress_store.dart';
@@ -128,6 +129,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int level = 1;
   bool sound = true;
   bool haptics = true;
+  int backgroundTheme = 0;
+  int tileTheme = 0;
+  int animationLevel = 2;
 
   @override
   void initState() {
@@ -142,6 +146,13 @@ class _HomeScreenState extends State<HomeScreen> {
       level = (saved['level'] as num?)?.toInt() ?? 1;
       sound = saved['sound'] as bool? ?? true;
       haptics = saved['haptics'] as bool? ?? true;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      backgroundTheme = prefs.getInt('fita.theme.background') ?? 0;
+      tileTheme = prefs.getInt('fita.theme.tiles') ?? 0;
+      animationLevel = prefs.getInt('fita.animation.level') ?? 2;
     });
   }
 
@@ -189,9 +200,9 @@ class _HomeScreenState extends State<HomeScreen> {
               SizedBox(width: double.infinity, height: 48, child: FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: cream, foregroundColor: pine, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
                 onPressed: () async {
-                  final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level, sound: sound, haptics: haptics)));
+                  final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level, sound: sound, haptics: haptics, backgroundTheme: backgroundTheme, tileTheme: tileTheme, animationLevel: animationLevel)));
                   if (won == true && mounted) {
-                    setState(() => level++);
+                    setState(() => level = level >= 10000 ? 10000 : level + 1);
                     await _saveProgress();
                   }
                 },
@@ -205,18 +216,35 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(children: [
             Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: 'Daily dew', subtitle: 'A tiny daily challenge', color: const Color(0xFFF7D6A8), onTap: () => _message(context, 'Daily challenges are planned for a future update.'))),
             const SizedBox(width: 12),
-            Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: 'Trail ranks', subtitle: 'Climb the leaderboard', color: const Color(0xFFC8DCC1), onTap: () => _message(context, 'Online leaderboards are not connected yet.'))),
+            Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: 'Trail ranks', subtitle: 'Climb the leaderboard', color: const Color(0xFFC8DCC1), onTap: _showLeaderboard)),
           ]),
           const SizedBox(height: 12),
           _WideAction(icon: Icons.people_alt_rounded, title: 'Play with a friend', subtitle: 'Race through the same layout', onTap: () => _message(context, 'Online multiplayer is planned; no live matches yet.')),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _message(context, 'More tile sets are coming in the next build.')),
+          _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _settings(context)),
           const SizedBox(height: 18),
           Center(child: Text('Breathe in. Match two. Breathe out.', style: TextStyle(color: pine.withOpacity(.7), fontStyle: FontStyle.italic))),
         ]))),
       ])),
     ]),
   );
+
+  Future<void> _showLeaderboard() async {
+    final prefs = await SharedPreferences.getInstance();
+    final scores = prefs.getStringList('fita.leaderboard') ?? <String>[];
+    if (!mounted) return;
+    showModalBottomSheet<void>(context: context, backgroundColor: cream, showDragHandle: true, builder: (ctx) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('🏆 Trail leaderboard', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: pine)),
+        const SizedBox(height: 8),
+        const Text('Best completed levels on this device', style: TextStyle(color: Colors.black54)),
+        const SizedBox(height: 12),
+        if (scores.isEmpty) const Padding(padding: EdgeInsets.all(18), child: Text('No records yet — finish your first level!')),
+        ...scores.take(10).toList().asMap().entries.map((e) => ListTile(leading: CircleAvatar(backgroundColor: const Color(0xFFFFE4B5), child: Text('${e.key + 1}')), title: Text(e.value.split('|').first), subtitle: Text(e.value.contains('|') ? 'Level ${e.value.split('|').last}' : 'Completed'), dense: true)),
+      ]),
+    ));
+  }
 
   void _settings(BuildContext context) => showModalBottomSheet(context: context, backgroundColor: cream, showDragHandle: true, builder: (context) => StatefulBuilder(builder: (context, setSheet) => Padding(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 30),
@@ -225,6 +253,23 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 12),
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
+      const Divider(height: 20),
+      const Text('BACKGROUND THEME', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 8),
+      Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
+        onTap: () async { setState(() => backgroundTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.background', i); },
+        child: Container(width: 48, height: 42, decoration: BoxDecoration(gradient: LinearGradient(colors: [[const Color(0xFFE8F0DE), const Color(0xFFFFF6E7)], [const Color(0xFFFFD6E8), const Color(0xFFFFE7A8)], [const Color(0xFFB8F2E6), const Color(0xFFCDB4DB)], [const Color(0xFF171B45), const Color(0xFF302B63)]][i]), borderRadius: BorderRadius.circular(13), border: Border.all(color: backgroundTheme == i ? pine : Colors.white, width: backgroundTheme == i ? 3 : 1))),
+      ))),
+      const SizedBox(height: 14),
+      const Text('TILE STYLE', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 8),
+      Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
+        onTap: () async { setState(() => tileTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.tiles', i); },
+        child: Container(width: 48, height: 42, decoration: BoxDecoration(color: [[const Color(0xFFFFFDF6)], [const Color(0xFFFFD6E8)], [const Color(0xFFB8F2E6)], [const Color(0xFF22254B)]][i][0], borderRadius: BorderRadius.circular(13), border: Border.all(color: tileTheme == i ? pine : Colors.white, width: tileTheme == i ? 3 : 1)), child: Center(child: Text(['🌿','🌈','💎','✨'][i]))),
+      ))),
+      const SizedBox(height: 12),
+      Row(children: [const Expanded(child: Text('Animation intensity', style: TextStyle(color: pine, fontWeight: FontWeight.w700))), Text(['Low','Normal','Extra'][animationLevel], style: const TextStyle(color: pine))]),
+      Slider(value: animationLevel.toDouble(), min: 0, max: 2, divisions: 2, activeColor: pine, onChanged: (v) async { setState(() => animationLevel = v.round()); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.animation.level', v.round()); }),
       const SizedBox(height: 8),
       const Text('Preferences are stored locally and sync to the cloud when Firebase is configured and the network is available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
     ]),
@@ -237,14 +282,29 @@ class GameScreen extends StatefulWidget {
   final int level;
   final bool sound;
   final bool haptics;
-  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true});
+  final int backgroundTheme;
+  final int tileTheme;
+  final int animationLevel;
+  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
-  static const _garden = ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷'];
+  static const _tileSets = [
+    ['🍃','🌼','🍄','🦋','🌿','🍐','🌸','🐝','🌙','🍀','🌻','🪷'],
+    ['🌈','⭐','💖','🦄','🍭','🧁','🎀','🫧','🌟','🍬','💫','🩷'],
+    ['💎','🔮','🪐','☄️','🌌','🧿','🪄','✨','🌙','💠','🌀','⭐'],
+    ['🔥','⚡','🌊','🌪️','☀️','🌈','💥','🌟','🪩','💫','🧨','✨'],
+  ];
+  static const _tileColors = [
+    [Color(0xFFFFFDF6), Color(0xFFFFE4B5), Color(0xFFE3EDD9), Color(0xFFD9E8EF)],
+    [Color(0xFFFFD6E8), Color(0xFFFFA6A6), Color(0xFFFFE7A8), Color(0xFFCDB4DB)],
+    [Color(0xFFB8F2E6), Color(0xFFBDE0FE), Color(0xFFCDB4DB), Color(0xFFFFC8DD)],
+    [Color(0xFF22254B), Color(0xFF4C3F91), Color(0xFF00C9A7), Color(0xFFFFC857)],
+  ];
   late List<String> tiles;
+  int burst = 0;
   final Set<int> removed = {};
   int? selected;
   int? mismatch;
@@ -274,7 +334,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _newBoard() {
-    final symbols = _garden.take(8).toList();
+    final symbols = _tileSets[widget.tileTheme.clamp(0, 3)].take(8).toList();
     final rng = Random(widget.level * 19 + DateTime.now().millisecondsSinceEpoch % 997);
     tiles = [...symbols, ...symbols]..shuffle(rng);
     removed.clear();
@@ -329,7 +389,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     if (tiles[first] == tiles[i]) {
       _feedback(success: true);
-      setState(() {
+      setState(() { burst++;
         removed.add(first);
         removed.add(i);
         selected = null;
@@ -395,7 +455,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _feedback();
   }
 
-  void _showWin() {
+  void _showWin() async {
+    if (!mounted) return;
+    final prefs = await SharedPreferences.getInstance();
+    final scores = prefs.getStringList('fita.leaderboard') ?? <String>[];
+    final record = 'Player|Level ${widget.level}';
+    if (!scores.contains(record)) {
+      scores.insert(0, record);
+      await prefs.setStringList('fita.leaderboard', scores.take(20).toList());
+    }
     if (!mounted) return;
     showDialog<void>(
       context: context,
@@ -444,7 +512,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ],
     ),
     body: Stack(children: [
-      const Positioned.fill(child: NatureBackdrop()),
+      Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
+      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2)),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: Column(children: [
         Row(children: [
           _StatPill(label: 'MOVES', value: '$moves'),
@@ -492,6 +561,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       ? const SizedBox.shrink()
                       : _GardenTile(
                           symbol: tiles[i],
+                          tileTheme: widget.tileTheme,
+                          animationLevel: widget.animationLevel,
                           selected: active,
                           hinted: hinted,
                           wrong: wrong,
@@ -520,16 +591,66 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   );
 }
 
+class _BurstOverlay extends StatefulWidget {
+  final bool intense;
+  const _BurstOverlay({super.key, this.intense = true});
+  @override
+  State<_BurstOverlay> createState() => _BurstOverlayState();
+}
+class _BurstOverlayState extends State<_BurstOverlay> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_Particle> _particles;
+  @override
+  void initState() {
+    super.initState();
+    final r = Random();
+    _particles = List.generate(widget.intense ? 34 : 16, (_) => _Particle(
+      angle: r.nextDouble() * pi * 2, distance: 55 + r.nextDouble() * 190,
+      size: 5 + r.nextDouble() * 10,
+      color: [const Color(0xFFFF4D8D), const Color(0xFFFFC857), const Color(0xFF00C9A7), const Color(0xFF7B61FF), Colors.white][r.nextInt(5)],
+    ));
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: widget.intense ? 850 : 500))..forward();
+  }
+  @override
+  Widget build(BuildContext context) => IgnorePointer(child: AnimatedBuilder(animation: _controller, builder: (_, __) => CustomPaint(painter: _BurstPainter(_particles, _controller.value))));
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+}
+class _Particle {
+  final double angle, distance, size;
+  final Color color;
+  const _Particle({required this.angle, required this.distance, required this.size, required this.color});
+}
+class _BurstPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double progress;
+  _BurstPainter(this.particles, this.progress);
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    for (final p in particles) {
+      final t = Curves.easeOutCubic.transform(progress);
+      final point = center + Offset(cos(p.angle) * p.distance * t, sin(p.angle) * p.distance * t);
+      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withOpacity((1 - progress).clamp(0.0, 1.0)));
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _BurstPainter oldDelegate) => oldDelegate.progress != progress;
+}
+
 class _GardenTile extends StatelessWidget {
   final String symbol;
+  final int tileTheme;
+  final int animationLevel;
   final bool selected;
   final bool hinted;
   final bool wrong;
   final VoidCallback onTap;
-  const _GardenTile({required this.symbol, required this.selected, required this.hinted, required this.wrong, required this.onTap});
+  const _GardenTile({required this.symbol, this.tileTheme = 0, this.animationLevel = 2, required this.selected, required this.hinted, required this.wrong, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final tileColors = _GameScreenState._tileColors[tileTheme.clamp(0, 3)];
     final borderColor = wrong
         ? const Color(0xFFD77B66)
         : selected
@@ -541,7 +662,7 @@ class _GardenTile extends StatelessWidget {
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFFFE4B5) : const Color(0xFFFFFDF6),
+        color: selected ? tileColors[1] : tileColors[0],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
         boxShadow: [
@@ -602,10 +723,17 @@ class _TileShowcase extends StatelessWidget {
 }
 
 class NatureBackdrop extends StatelessWidget {
-  const NatureBackdrop({super.key});
+  final int theme;
+  const NatureBackdrop({super.key, this.theme = 0});
+  static const _gradients = [
+    [Color(0xFFE8F0DE), Color(0xFFFFF6E7), Color(0xFFF8E3CD)],
+    [Color(0xFFFFD6E8), Color(0xFFFFE7A8), Color(0xFFFFA6A6)],
+    [Color(0xFFB8F2E6), Color(0xFFBDE0FE), Color(0xFFCDB4DB)],
+    [Color(0xFF171B45), Color(0xFF302B63), Color(0xFF24243E)],
+  ];
   @override
   Widget build(BuildContext context) => Stack(fit: StackFit.expand, children: [
-    const DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFFE8F0DE), Color(0xFFFFF6E7), Color(0xFFF8E3CD)]))),
+    DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: _gradients[theme.clamp(0, 3)]))),
     Positioned(top: 120, right: -65, child: _Sun()),
     Positioned(bottom: -95, left: -65, child: _Hill(width: 310, height: 250, color: const Color(0xFFC7D9B5))),
     Positioned(bottom: -115, right: -45, child: _Hill(width: 330, height: 260, color: const Color(0xFF9EBB91))),
