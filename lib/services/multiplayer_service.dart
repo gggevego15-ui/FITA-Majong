@@ -111,16 +111,29 @@ class MultiplayerService {
     required bool won,
   }) async {
     final ref = FirebaseFirestore.instance.collection('matches').doc(code);
-    final snap = await ref.get();
-    final data = snap.data();
-    if (data == null) return;
-    final isHost = data['hostUid'] == uid;
-    if (!isHost && data['guestUid'] != uid) return;
-    await ref.update({
-      isHost ? 'hostPairs' : 'guestPairs': pairsLeft,
-      isHost ? 'hostWon' : 'guestWon': won,
-      'status': won ? 'finished' : (data['guestUid'] == null ? 'waiting' : 'playing'),
-      'updatedAt': FieldValue.serverTimestamp(),
+    await FirebaseFirestore.instance.runTransaction<void>((tx) async {
+      final snap = await tx.get(ref);
+      final data = snap.data();
+      if (data == null) return;
+
+      final isHost = data['hostUid'] == uid;
+      final isGuest = data['guestUid'] == uid;
+      if (!isHost && !isGuest) return;
+
+      // Read and update atomically so two players finishing close together
+      // cannot overwrite the match's finished state with a stale snapshot.
+      final currentStatus = data['status'] as String? ?? 'playing';
+      final nextStatus = won || currentStatus == 'finished'
+          ? 'finished'
+          : data['guestUid'] == null
+              ? 'waiting'
+              : 'playing';
+      tx.update(ref, {
+        isHost ? 'hostPairs' : 'guestPairs': pairsLeft.clamp(0, 72),
+        isHost ? 'hostWon' : 'guestWon': won,
+        'status': nextStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 }
