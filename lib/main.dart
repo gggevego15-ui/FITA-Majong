@@ -399,6 +399,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _newBoard() {
     pairs = 72;
+    const tileCount = 144;
     spots = MahjongRules.classicTurtleLayout();
     final solvableOrder = MahjongRules.classicRemovalOrder(spots);
     final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].toList()
