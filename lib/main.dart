@@ -553,6 +553,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   OverlayEntry? _flightEntry;
   late final Stopwatch _clock;
   final AudioPlayer _matchPlayer = AudioPlayer();
+  final TransformationController _boardController = TransformationController();
   Timer? _ticker;
   String get elapsed {
     final s = _clock.elapsed.inSeconds;
@@ -920,12 +921,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   @override
+  void _fitBoard(double viewportWidth, double viewportHeight, double boardWidth, double boardHeight) {
+    final scale = min(viewportWidth / boardWidth, viewportHeight / boardHeight)
+        .clamp(0.35, 1.0)
+        .toDouble();
+    final dx = (viewportWidth - boardWidth * scale) / 2;
+    final dy = (viewportHeight - boardHeight * scale) / 2;
+    _boardController.value = Matrix4.identity()
+      ..translate(dx, dy)
+      ..scale(scale);
+  }
+
   void dispose() {
     _ticker?.cancel();
     _comboPopupTimer?.cancel();
     _flightEntry?.remove();
     _flightController.dispose();
     _winController.dispose();
+    _boardController.dispose();
     _clock.stop();
     super.dispose();
   }
@@ -1045,10 +1058,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           // Bias toward larger touch targets on phones; the board scrolls when needed.
           final tileWidth = min((constraints.maxWidth - 8) / 8.5, (constraints.maxHeight - 8) / 6.5).clamp(44.0, 76.0).toDouble();
           final tileHeight = tileWidth;
-          // InteractiveViewer supports pinch-to-zoom and panning with one or two fingers.
-          // Keep the board unconstrained so zooming enlarges the actual tile hit targets.
-          return InteractiveViewer(
-            minScale: 0.65,
+          final boardWidth = tileWidth * 14.6;
+          final boardHeight = tileHeight * 10.6;
+          // The fit control scales and centers the complete board in the available viewport.
+          return Stack(children: [
+            InteractiveViewer(
+            transformationController: _boardController,
+            minScale: 0.35,
             maxScale: 2.5,
             scaleEnabled: true,
             panEnabled: true,
@@ -1060,8 +1076,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             boundaryMargin: const EdgeInsets.all(120),
             clipBehavior: Clip.hardEdge,
             child: SizedBox(
-            width: tileWidth * 14.6,
-            height: tileHeight * 10.6,
+            width: boardWidth,
+            height: boardHeight,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
               final spot = spots[i];
               final gone = removed.contains(i);
@@ -1098,7 +1114,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
-          ));
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Material(
+              color: cream.withValues(alpha: .94),
+              elevation: 3,
+              borderRadius: BorderRadius.circular(12),
+              child: IconButton(
+                tooltip: 'Fit entire board',
+                onPressed: () => _fitBoard(
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                  boardWidth,
+                  boardHeight,
+                ),
+                icon: const Icon(Icons.fit_screen_rounded, color: pine),
+              ),
+            ),
+          ),
+          ]);
         })),
         const SizedBox(height: 10),
         Row(children: [
