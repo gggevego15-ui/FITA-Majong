@@ -554,6 +554,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final Stopwatch _clock;
   final AudioPlayer _matchPlayer = AudioPlayer();
   final TransformationController _boardController = TransformationController();
+  late final AnimationController _boardFitController;
+  Animation<Matrix4>? _boardFitAnimation;
   Timer? _ticker;
   String get elapsed {
     final s = _clock.elapsed.inSeconds;
@@ -567,6 +569,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (mounted) setState(() => bestComboStreak = prefs.getInt('fita.combo.bestStreak') ?? 0);
     });
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
+    _boardFitController = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _boardFitController.addListener(() {
+      final animation = _boardFitAnimation;
+      if (animation != null && mounted) _boardController.value = animation.value;
+    });
     _flightController = AnimationController(vsync: this, duration: Duration(milliseconds: widget.animationLevel == 0 ? 180 : 420));
     _flightController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
@@ -927,9 +934,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         .toDouble();
     final dx = (viewportWidth - boardWidth * scale) / 2;
     final dy = (viewportHeight - boardHeight * scale) / 2;
-    _boardController.value = Matrix4.identity()
+    final target = Matrix4.identity()
       ..translate(dx, dy)
       ..scale(scale);
+    _boardFitController.stop();
+    _boardFitAnimation = Matrix4Tween(
+      begin: Matrix4.copy(_boardController.value),
+      end: target,
+    ).animate(CurvedAnimation(
+      parent: _boardFitController,
+      curve: Curves.easeInOutCubic,
+    ));
+    _boardFitController.forward(from: 0);
   }
 
   void dispose() {
@@ -938,6 +954,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _flightEntry?.remove();
     _flightController.dispose();
     _winController.dispose();
+    _boardFitController.dispose();
     _boardController.dispose();
     _clock.stop();
     super.dispose();
