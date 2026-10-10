@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
           ),
           const SizedBox(height: 24),
-          const Text('YOUR JOURNEY', style: TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900)),
+          Row(children: [const Expanded(child: Text('YOUR JOURNEY', style: TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900))), Text('LEVEL $level / 10,000', style: const TextStyle(fontSize: 10, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800))]),
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: 'Daily dew', subtitle: 'A tiny daily challenge', color: const Color(0xFFF7D6A8), onTap: () => _message(context, 'Daily challenges are planned for a future update.'))),
@@ -248,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _settings(BuildContext context) => showModalBottomSheet(context: context, backgroundColor: cream, showDragHandle: true, builder: (context) => StatefulBuilder(builder: (context, setSheet) => Padding(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 30),
-    child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+    child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Little comforts', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
       const SizedBox(height: 12),
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
@@ -272,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Slider(value: animationLevel.toDouble(), min: 0, max: 2, divisions: 2, activeColor: pine, onChanged: (v) async { setState(() => animationLevel = v.round()); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.animation.level', v.round()); }),
       const SizedBox(height: 8),
       const Text('Preferences are stored locally and sync to the cloud when Firebase is configured and the network is available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
-    ]),
+    ])),
   )));
 
   void _message(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -411,7 +411,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final order = _solveLayout(spots);
     // The layouts are designed to peel from the top/edges. Keep a safe fallback
     // for unexpected future layouts so a level never crashes during generation.
-    final solvableOrder = order ?? List.generate(tileCount, (i) => i);
+    final solvableOrder = order ?? (throw StateError('No solvable layout generated for level ${widget.level}'));
     final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].take(pairs).toList()
       ..shuffle(Random(widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997));
     tiles = List.filled(tileCount, '');
