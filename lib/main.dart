@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
       SafeArea(child: CustomScrollView(slivers: [
         SliverPadding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 28), sliver: SliverList(delegate: SliverChildListDelegate([
           Row(children: [
-            const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(_tr(language, 'goodDay'), style: const TextStyle(fontSize: 10, letterSpacing: 2, color: pine, fontWeight: FontWeight.w800)),
               SizedBox(height: 5),
               Text(_tr(language, 'quietCorner'), style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: pine)),
@@ -264,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF47765D), Color(0xFF8AA77B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: pine.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(_tr(language, 'gardenPath'), style: const TextStyle(color: Color(0xFFDDEACB), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w800)),
                   SizedBox(height: 8),
                   Text(_tr(language, 'freshPuzzle'), style: const TextStyle(color: Colors.white, fontSize: 25, height: 1.12, fontWeight: FontWeight.w900)),
@@ -326,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SizedBox(
           height: MediaQuery.of(sheetContext).size.height * .72,
           child: Column(children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(22, 8, 22, 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 12),
               child: Align(alignment: Alignment.centerLeft, child: Text('🌿 ${_tr(language, 'levelPath')}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
             ),
             Expanded(child: ListView.builder(
@@ -387,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Text(_tr(language, 'language'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 6),
       DropdownButtonFormField<String>(
-        value: language,
+        initialValue: language,
         decoration: const InputDecoration(filled: true, fillColor: Colors.white, border: OutlineInputBorder()),
         items: const [
           DropdownMenuItem(value: 'en', child: Text('English')),
@@ -475,6 +475,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int? hintB;
   final List<_GameSnapshot> _history = <_GameSnapshot>[];
   late final AnimationController _winController;
+  late final AnimationController _flightController;
+  final GlobalKey _firstSlotKey = GlobalKey();
+  final Map<int, GlobalKey> _tileKeys = <int, GlobalKey>{};
+  OverlayEntry? _flightEntry;
   late final Stopwatch _clock;
   Timer? _ticker;
   String get elapsed {
@@ -486,6 +490,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
+    _flightController = AnimationController(vsync: this, duration: Duration(milliseconds: widget.animationLevel == 0 ? 180 : 420));
+    _flightController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _flightEntry?.remove();
+        _flightEntry = null;
+      }
+    });
     _clock = Stopwatch()..start();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && !finished) setState(() {});
@@ -496,6 +507,57 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
       MahjongRules.isAvailable(index, layout, gone);
+
+  void _flyTile(int index) {
+    if (widget.animationLevel == 0 || !mounted) return;
+    final sourceContext = _tileKeys[index]?.currentContext;
+    final targetContext = _firstSlotKey.currentContext;
+    if (sourceContext == null || targetContext == null) return;
+    final sourceBox = sourceContext.findRenderObject() as RenderBox?;
+    final targetBox = targetContext.findRenderObject() as RenderBox?;
+    final overlay = Overlay.of(context);
+    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+    if (sourceBox == null || targetBox == null || overlayBox == null) return;
+    final source = sourceBox.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final target = targetBox.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final start = source + Offset(sourceBox.size.width / 2, sourceBox.size.height / 2);
+    final end = target + Offset(targetBox.size.width / 2, targetBox.size.height / 2);
+    _flightEntry?.remove();
+    _flightController.reset();
+    _flightEntry = OverlayEntry(builder: (context) => IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _flightController,
+        builder: (context, child) {
+          final t = Curves.easeInOutCubic.transform(_flightController.value);
+          final point = Offset.lerp(start, end, t)!;
+          final size = lerpDouble(sourceBox.size.width, min(targetBox.size.width * .72, sourceBox.size.width), t)!;
+          return Positioned(
+            left: point.dx - size / 2,
+            top: point.dy - size / 2,
+            width: size,
+            height: size,
+            child: Opacity(
+              opacity: (1 - .18 * t).clamp(0.0, 1.0),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: _tileColors[widget.tileTheme.clamp(0, 3).toInt()][1],
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: const Color(0xFFFFD27A), width: 2.5),
+                    boxShadow: [BoxShadow(color: pine.withValues(alpha: .35), blurRadius: 20, spreadRadius: 3)],
+                  ),
+                  child: Center(child: Text(tiles[index], style: TextStyle(fontSize: size * .52))),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ));
+    overlay.insert(_flightEntry!);
+    _flightController.forward();
+  }
 
 
   void _newBoard() {
@@ -554,6 +616,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         hintA = null;
         hintB = null;
       });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _flyTile(i));
       _feedback();
       return;
     }
@@ -693,6 +756,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _ticker?.cancel();
+    _flightEntry?.remove();
+    _flightController.dispose();
     _winController.dispose();
     _clock.stop();
     super.dispose();
@@ -729,6 +794,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: AnimatedContainer(
+                  key: slot == 0 ? _firstSlotKey : null,
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutBack,
                   decoration: BoxDecoration(
@@ -777,6 +843,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               final hinted = hintA == i || hintB == i;
               final wrong = mismatch == i || mismatch == selected;
               final enabled = _availableInState(i, spots, removed);
+              final tileKey = _tileKeys.putIfAbsent(i, () => GlobalKey());
               return AnimatedPositioned(
                 duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : widget.animationLevel == 1 ? 180 : 300),
                 curve: Curves.easeOutBack,
@@ -791,6 +858,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     opacity: gone ? 0 : enabled ? 1 : .58,
                     duration: const Duration(milliseconds: 180),
                     child: gone ? const SizedBox.shrink() : _GardenTile(
+                      key: tileKey,
                       symbol: tiles[i],
                       tileTheme: widget.tileTheme,
                       animationLevel: widget.animationLevel,
