@@ -1257,12 +1257,16 @@ class _TileArtworkPainter extends CustomPainter {
       ..color = accent.withValues(alpha: .85)
       ..strokeWidth = 1.35;
     canvas.drawCircle(center, radius * .76, paint);
-    final petals = 5 + seed.abs() % 4;
+    final petals = 4 + seed.abs() % 7;
+    final motif = seed.abs() % 3;
     for (var i = 0; i < petals; i++) {
       final angle = (pi * 2 * i / petals) + (seed % 11) * .04;
-      final petalCenter = center + Offset(cos(angle) * radius * .48, sin(angle) * radius * .48);
+      final distance = radius * (.42 + (motif * .035));
+      final petalCenter = center + Offset(cos(angle) * distance, sin(angle) * distance);
       fill.color = (i.isEven ? accent : secondary).withValues(alpha: .88);
-      canvas.drawOval(Rect.fromCenter(center: petalCenter, width: radius * .48, height: radius * .30).shift(Offset(cos(angle) * 1.2, sin(angle) * 1.2)), fill);
+      final petalWidth = radius * (.36 + ((seed + i).abs() % 4) * .055);
+      final petalHeight = radius * (.22 + ((seed + i * 3).abs() % 3) * .045);
+      canvas.drawOval(Rect.fromCenter(center: petalCenter, width: petalWidth, height: petalHeight).shift(Offset(cos(angle) * 1.2, sin(angle) * 1.2)), fill);
     }
     fill.color = highlighted ? const Color(0xFFFFF0B4) : colors[3];
     canvas.drawCircle(center, radius * .22, fill);
