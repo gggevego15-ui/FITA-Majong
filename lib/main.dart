@@ -328,7 +328,60 @@ class _HomeScreenState extends State<HomeScreen> {
             const Spacer(),
             IconButton.filledTonal(onPressed: () => _settings(context), icon: const Icon(Icons.tune_rounded), style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: .75), foregroundColor: pine)),
           ]),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .9),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFD9C08A).withValues(alpha: .75)),
+              boxShadow: [BoxShadow(color: pine.withValues(alpha: .07), blurRadius: 16, offset: const Offset(0, 5))],
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(
+                  width: 48, height: 48,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(colors: [Color(0xFFFFE4A8), Color(0xFFD58D59)]),
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded, color: Color(0xFF315B45), size: 28),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(language == 'ru' ? 'УРОВЕНЬ ИГРОКА $_playerRankLevel' : 'PLAYER LEVEL $_playerRankLevel', style: const TextStyle(color: pine, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 3),
+                  Text(_playerRank(_playerRankLevel), style: const TextStyle(color: pine, fontSize: 17, fontWeight: FontWeight.w900)),
+                ])),
+                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                  const Icon(Icons.stars_rounded, color: Color(0xFFD58D59), size: 20),
+                  Text('$playerXp XP', style: const TextStyle(color: pine, fontSize: 13, fontWeight: FontWeight.w900)),
+                ]),
+              ]),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey('xp-$playerXp'),
+                  tween: Tween(begin: 0, end: (playerXp % 100) / 100),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, progress, child) => LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0).toDouble(),
+                    minHeight: 10,
+                    backgroundColor: const Color(0xFFE6E9DD),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFD58D59)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 7),
+              Row(children: [
+                Expanded(child: Text(language == 'ru' ? 'До следующего уровня' : 'Progress to next level', style: const TextStyle(color: Colors.black54, fontSize: 11))),
+                Text('${playerXp % 100}/100 XP', style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800)),
+              ]),
+            ]),
+          ),
+          const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF47765D), Color(0xFF8AA77B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: pine.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]),
@@ -482,6 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
       comboEffects: comboEffects,
       language: language,
     )));
+    await _refreshPlayerXp();
     if (won == true && mounted && selectedLevel == level) {
       setState(() => level = level >= 10000 ? 10000 : level + 1);
       await _saveProgress();
