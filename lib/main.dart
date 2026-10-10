@@ -660,7 +660,7 @@ class _GardenTile extends StatelessWidget {
                 ? const Color(0xFF6F9E78)
                 : const Color(0xFFD5DFC9);
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+      duration: Duration(milliseconds: animationLevel == 0 ? 90 : animationLevel == 1 ? 180 : 320),
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: selected ? tileColors[1] : tileColors[0],
