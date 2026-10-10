@@ -1,18 +1,12 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import '../config/firebase_runtime_config.dart';
-
-import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// Firebase initialization is deliberately non-fatal: local guest play remains
-/// available before Firebase platform files and OAuth clients are configured.
+/// No interactive sign-in: Firebase anonymous auth gives each installation a
+/// private UID so Firestore rules can protect that player's cloud save.
 class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
@@ -20,11 +14,14 @@ class AuthService {
   bool firebaseReady = false;
   String? initializationError;
 
+  User? get firebaseUser =>
+      firebaseReady ? FirebaseAuth.instance.currentUser : null;
+
   Future<void> initialize() async {
     if (!FirebaseRuntimeConfig.isConfigured) {
       firebaseReady = false;
       initializationError =
-          'Firebase configuration is missing; local guest mode is available.';
+          'Firebase configuration is missing; saves are local-only.';
       return;
     }
     try {
@@ -44,21 +41,19 @@ class AuthService {
     }
   }
 
-  User? get firebaseUser => firebaseReady ? FirebaseAuth.instance.currentUser : null;
-  bool get isGuest => firebaseUser?.isAnonymous ?? true;
-  String? get displayName => firebaseUser?.displayName;
-  String? get email => firebaseUser?.email;
-
+  /// Creates/reuses an anonymous Firebase user without showing a login UI.
+  /// If Firebase is unavailable, preserves offline play with a local device ID.
   Future<String> continueAsGuest() async {
     if (firebaseReady) {
       try {
-        final user = FirebaseAuth.instance.currentUser ??
-            (await FirebaseAuth.instance.signInAnonymously()).user;
+        final current = FirebaseAuth.instance.currentUser;
+        final user = current ?? (await FirebaseAuth.instance.signInAnonymously()).user;
         if (user != null) return user.uid;
-      } on FirebaseAuthException {
-        // Fall back to a persistent device-local guest identity.
+      } on FirebaseAuthException catch (error) {
+        initializationError = '${error.code}: ${error.message ?? error.toString()}';
       }
     }
+
     final prefs = await SharedPreferences.getInstance();
     var guestId = prefs.getString('fita.local_guest_id');
     if (guestId == null) {
@@ -70,119 +65,4 @@ class AuthService {
     }
     return guestId;
   }
-
-  Future<UserCredential> signInWithGoogle() async {
-    _requireFirebase();
-    if (FirebaseRuntimeConfig.googleServerClientId.isEmpty) {
-      throw StateError(
-        'Google sign-in needs FITA_GOOGLE_SERVER_CLIENT_ID: use the Web '
-        'application OAuth client ID from Google Cloud Console (client ID only).',
-      );
-    }
-    if (Platform.isIOS && FirebaseRuntimeConfig.googleIosClientId.isEmpty) {
-      throw StateError(
-        'Google sign-in on iOS needs FITA_GOOGLE_IOS_CLIENT_ID and the '
-        'matching reversed client-ID URL scheme in ios/Runner/Info.plist.',
-      );
-    }
-    final google = GoogleSignIn(
-      clientId: !Platform.isIOS ||
-              FirebaseRuntimeConfig.googleIosClientId.isEmpty
-          ? null
-          : FirebaseRuntimeConfig.googleIosClientId,
-      serverClientId: FirebaseRuntimeConfig.googleServerClientId.isEmpty
-          ? null
-          : FirebaseRuntimeConfig.googleServerClientId,
-    );
-    final account = await google.signIn();
-    if (account == null) {
-      throw const AuthFlowCancelled();
-    }
-    final tokens = await account.authentication;
-    if (tokens.idToken == null || tokens.idToken!.isEmpty) {
-      throw StateError(
-        'Google did not return an ID token. Check the Web OAuth client ID, '
-        'Android signing fingerprints, package name, and iOS URL scheme.',
-      );
-    }
-    final credential = GoogleAuthProvider.credential(
-      accessToken: tokens.accessToken,
-      idToken: tokens.idToken,
-    );
-    return _signInOrLink(credential);
-  }
-
-  Future<UserCredential> signInWithApple() async {
-    _requireFirebase();
-    final rawNonce = _generateNonce();
-    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
-    final apple = await SignInWithApple.getAppleIDCredential(
-      scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
-      nonce: hashedNonce,
-    );
-    final oauth = OAuthProvider('apple.com').credential(
-      idToken: apple.identityToken,
-      rawNonce: rawNonce,
-    );
-    final result = await _signInOrLink(oauth);
-    // Apple only returns the name on the first consent. Keep it if Firebase has
-    // no display name yet; never overwrite an existing profile.
-    final nameParts = [apple.givenName, apple.familyName]
-        .whereType<String>()
-        .where((part) => part.trim().isNotEmpty)
-        .toList();
-    if (nameParts.isNotEmpty && (result.user?.displayName?.isEmpty ?? true)) {
-      await result.user?.updateDisplayName(nameParts.join(' '));
-    }
-    return result;
-  }
-
-  Future<UserCredential> _signInOrLink(AuthCredential credential) async {
-    final current = FirebaseAuth.instance.currentUser;
-    if (current != null && current.isAnonymous) {
-      try {
-        return await current.linkWithCredential(credential);
-      } on FirebaseAuthException catch (error) {
-        // If the provider account already exists, sign into it instead. The
-        // existing account's data is not merged automatically; that requires
-        // an explicit product-level migration flow.
-        if (error.code != 'credential-already-in-use' &&
-            error.code != 'email-already-in-use') {
-          rethrow;
-        }
-      }
-    }
-    return FirebaseAuth.instance.signInWithCredential(credential);
-  }
-
-  Future<void> signOut() async {
-    if (!firebaseReady) return;
-    await FirebaseAuth.instance.signOut();
-    try {
-      await GoogleSignIn().signOut();
-    } catch (_) {
-      // Firebase sign-out has already completed.
-    }
-  }
-
-  void _requireFirebase() {
-    if (!firebaseReady) {
-      throw StateError(
-        'Firebase is not configured. Follow FIREBASE_SETUP.md, provide the '
-        'required FITA_FIREBASE_* values, and enable providers in Firebase Console. '
-        '${initializationError ?? ''}',
-      );
-    }
-  }
-
-  String _generateNonce([int length = 32]) {
-    const chars =
-        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
-    final random = Random.secure();
-    return List.generate(length, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-}
-
-class AuthFlowCancelled implements Exception {
-  const AuthFlowCancelled();
 }
