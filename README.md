@@ -11,6 +11,12 @@ Flutter starter for Android and iOS with a cozy nature-and-garden visual directi
 - Firestore rules restricting each UID to its own `users/{uid}` document.
 - Cozy nature home screen and local pair-matching prototype.
 
+## Daily challenge and online multiplayer
+
+- The daily challenge uses a UTC date-based seed, so the board is the same for every player on the same date. A completed daily challenge is recorded on the device.
+- Online races use six-character room codes and Firestore real-time updates to compare matched pairs on the same solvable layout.
+- To enable multiplayer, configure Firebase as described below, enable Anonymous Authentication, create Firestore, and deploy the current `firestore.rules`. The game falls back to local-only play when Firebase is unavailable; online rooms cannot work until configured.
+
 ## Firebase cloud saves
 
 Follow [FIREBASE_SETUP.md](FIREBASE_SETUP.md). Copy `firebase.local.example.json` to `firebase.local.json`, enter the Firebase project/app values, then run:
