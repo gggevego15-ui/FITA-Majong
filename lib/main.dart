@@ -465,6 +465,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late List<String> tiles;
   late List<_TileSpot> spots;
   int burst = 0;
+  int matchStreak = 0;
   bool shaking = false;
   final Set<int> removed = {};
   int? selected;
@@ -584,15 +585,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     hintA = null;
     hintB = null;
     moves = 0;
+    matchStreak = 0;
     busy = false;
     finished = false;
     _clock..reset()..start();
   }
 
-  Uint8List _buildBurstWav() {
-    // A tiny synthesized, offline burst: descending low tone + filtered-noise crackle.
+  Uint8List _buildBurstWav({bool combo = false}) {
+    // Offline burst; combo adds a brighter rising chime on top of the impact.
     const sampleRate = 11025;
-    const sampleCount = 3528;
+    final sampleCount = combo ? 5512 : 3528;
     final random = Random(41);
     final bytes = Uint8List(44 + sampleCount * 2);
     final header = ByteData.sublistView(bytes);
@@ -617,13 +619,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     for (var i = 0; i < sampleCount; i++) {
       final t = i / sampleRate;
       final envelope = (1 - exp(-t * 100)) * exp(-t * 9);
-      final frequency = 150 - 95 * (t / .32);
+      final frequency = combo ? 190 - 80 * (t / .5) : 150 - 95 * (t / .32);
       final body = sin(2 * pi * (frequency * t - 20 * t * t)) * .62;
+      final chimeEnvelope = combo ? exp(-max(0, t - .06) * 5) * min(1.0, t * 24) : 0.0;
+      final chime = combo
+          ? (sin(2 * pi * 660 * t) * .24 + sin(2 * pi * 990 * t) * .18) * chimeEnvelope
+          : 0.0;
       final noise = (random.nextDouble() * 2 - 1) * .42;
       final crackle = random.nextDouble() < .3
           ? (random.nextDouble() * 2 - 1) * .28
           : 0.0;
-      final sample = ((body + noise + crackle) * envelope * 25000)
+      final sample = ((body + noise + crackle + chime) * envelope * 25000)
           .round()
           .clamp(-32768, 32767)
           .toInt();
@@ -632,16 +638,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return bytes;
   }
 
-  Future<void> _playMatchBurst() async {
+  Future<void> _playMatchBurst({bool combo = false}) async {
     try {
       await _matchPlayer.stop();
-      await _matchPlayer.play(BytesSource(_buildBurstWav()));
+      await _matchPlayer.play(BytesSource(_buildBurstWav(combo: combo)));
     } catch (_) {
       // Sound is optional; matching and animations must work if audio is unavailable.
     }
   }
 
-  void _feedback({bool success = false}) {
+  void _feedback({bool success = false, bool combo = false}) {
     if (widget.haptics) {
       if (success) {
         // Two light taps communicate a successful match without being intrusive.
@@ -652,7 +658,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
     if (widget.sound) {
       if (success) {
-        unawaited(_playMatchBurst());
+        unawaited(_playMatchBurst(combo: combo));
       } else {
         SystemSound.play(SystemSoundType.click);
       }
@@ -695,7 +701,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       hintB = null;
     });
     if (tiles[first] == tiles[i]) {
-      _feedback(success: true);
+      matchStreak++;
+      final combo = matchStreak >= 3 && matchStreak % 3 == 0;
+      _feedback(success: true, combo: combo);
       setState(() {
         burst++;
         shaking = true;
@@ -712,6 +720,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         if (mounted) _showWin();
       }
     } else {
+      matchStreak = 0;
       _feedback();
       setState(() {
         mismatch = i;
