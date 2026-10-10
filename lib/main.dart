@@ -9,6 +9,7 @@ import 'game/mahjong_rules.dart';
 
 import 'services/auth_service.dart';
 import 'services/progress_store.dart';
+import 'services/multiplayer_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -574,6 +575,93 @@ class _HomeScreenState extends State<HomeScreen> {
   )));
 
   void _message(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+class _MultiplayerLobby extends StatefulWidget {
+  final String language;
+  final Future<void> Function(MultiplayerRoom room) onRoomReady;
+  const _MultiplayerLobby({required this.language, required this.onRoomReady});
+
+  @override
+  State<_MultiplayerLobby> createState() => _MultiplayerLobbyState();
+}
+
+class _MultiplayerLobbyState extends State<_MultiplayerLobby> {
+  final TextEditingController _codeController = TextEditingController();
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _run(Future<MultiplayerRoom> Function() action) async {
+    if (_busy) return;
+    setState(() { _busy = true; _error = null; });
+    try {
+      final room = await action();
+      if (!mounted) return;
+      await widget.onRoomReady(room);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString().replaceFirst('Bad state: ', '').replaceFirst('FormatException: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(22, 8, 22, 22 + MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('🌿 Play with a friend', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: pine)),
+          const SizedBox(height: 6),
+          const Text('Create a room and send its 6-character code to a friend, or enter their code. Both players get the same solvable board.', style: TextStyle(color: ink, height: 1.4)),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: _busy ? null : () => _run(MultiplayerService.instance.createRoom),
+            icon: const Icon(Icons.add_link_rounded),
+            label: Text(_busy ? 'Connecting…' : 'Create room'),
+            style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+          )),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _codeController,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+            textInputAction: TextInputAction.go,
+            decoration: const InputDecoration(
+              labelText: 'Friend’s room code',
+              hintText: 'ABC123',
+              counterText: '',
+              border: OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.vpn_key_rounded),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: OutlinedButton.icon(
+            onPressed: _busy ? null : () => _run(() => MultiplayerService.instance.joinRoom(_codeController.text)),
+            icon: const Icon(Icons.login_rounded),
+            label: const Text('Join room'),
+            style: OutlinedButton.styleFrom(foregroundColor: pine, padding: const EdgeInsets.symmetric(vertical: 14)),
+          )),
+          if (_error != null) Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(height: 10),
+          const Text('Online play requires Firebase to be configured and Firestore rules deployed.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+        ],
+      )),
+    ),
+  );
 }
 
 class GameScreen extends StatefulWidget {
