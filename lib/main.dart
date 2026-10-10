@@ -335,7 +335,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _newBoard() {
     pairs = min(12, 8 + ((widget.level - 1) ~/ 1000));
-    final symbols = _tileSets[widget.tileTheme.clamp(0, 3)].take(pairs).toList();
+    final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt().toInt()].take(pairs).toList();
     final rng = Random(widget.level * 19 + DateTime.now().millisecondsSinceEpoch % 997);
     tiles = [...symbols, ...symbols]..shuffle(rng);
     removed.clear();
@@ -632,7 +632,7 @@ class _BurstPainter extends CustomPainter {
     for (final p in particles) {
       final t = Curves.easeOutCubic.transform(progress);
       final point = center + Offset(cos(p.angle) * p.distance * t, sin(p.angle) * p.distance * t);
-      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withOpacity((1 - progress).clamp(0.0, 1.0)));
+      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withOpacity((1 - progress).clamp(0.0, 1.0).toDouble()));
     }
   }
   @override
@@ -734,7 +734,7 @@ class NatureBackdrop extends StatelessWidget {
   ];
   @override
   Widget build(BuildContext context) => Stack(fit: StackFit.expand, children: [
-    DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: _gradients[theme.clamp(0, 3)]))),
+    DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: _gradients[theme.clamp(0, 3).toInt()]))),
     Positioned(top: 120, right: -65, child: _Sun()),
     Positioned(bottom: -95, left: -65, child: _Hill(width: 310, height: 250, color: const Color(0xFFC7D9B5))),
     Positioned(bottom: -115, right: -45, child: _Hill(width: 330, height: 260, color: const Color(0xFF9EBB91))),
