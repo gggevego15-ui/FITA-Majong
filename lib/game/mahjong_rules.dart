@@ -23,18 +23,17 @@ class MahjongRules {
         return false;
       }
     }
-    final leftBlocked = layout.asMap().entries.any((entry) =>
-        !removed.contains(entry.key) &&
-        entry.key != index &&
-        entry.value.layer == spot.layer &&
-        entry.value.y == spot.y &&
-        entry.value.x == spot.x - 1);
-    final rightBlocked = layout.asMap().entries.any((entry) =>
-        !removed.contains(entry.key) &&
-        entry.key != index &&
-        entry.value.layer == spot.layer &&
-        entry.value.y == spot.y &&
-        entry.value.x == spot.x + 1);
+    var leftBlocked = false;
+    var rightBlocked = false;
+    // Avoid allocating asMap/entries views for every tile during board rebuilds.
+    for (var i = 0; i < layout.length; i++) {
+      if (i == index || removed.contains(i)) continue;
+      final other = layout[i];
+      if (other.layer != spot.layer || other.y != spot.y) continue;
+      if (other.x == spot.x - 1) leftBlocked = true;
+      if (other.x == spot.x + 1) rightBlocked = true;
+      if (leftBlocked && rightBlocked) break;
+    }
     return !leftBlocked || !rightBlocked;
   }
 
