@@ -38,6 +38,65 @@ class MahjongRules {
     return !leftBlocked || !rightBlocked;
   }
 
+
+  /// A centered four-layer turtle-style board containing exactly 144 tiles.
+  /// The layout has 96 base tiles, then 24, 16 and 8 tiles on upper terraces.
+  static List<TileSpot> classicTurtleLayout() {
+    final layout = <TileSpot>[];
+    for (var y = 0; y < 8; y++) {
+      for (var x = 0; x < 12; x++) {
+        layout.add(TileSpot(x: x, y: y, layer: 0));
+      }
+    }
+    for (var y = 2; y < 6; y++) {
+      for (var x = 3; x < 9; x++) {
+        layout.add(TileSpot(x: x, y: y, layer: 1));
+      }
+    }
+    for (var y = 2; y < 6; y++) {
+      for (var x = 4; x < 8; x++) {
+        layout.add(TileSpot(x: x, y: y, layer: 2));
+      }
+    }
+    for (var y = 2; y < 6; y++) {
+      for (var x = 5; x < 7; x++) {
+        layout.add(TileSpot(x: x, y: y, layer: 3));
+      }
+    }
+    return layout;
+  }
+
+  /// Creates a legal peel order from the top layer down. Every row has even
+  /// width, so repeatedly removing its left and right ends preserves access.
+  static List<int> classicRemovalOrder(List<TileSpot> layout) {
+    final order = <int>[];
+    for (var layer = 3; layer >= 0; layer--) {
+      final rows = layout
+          .where((spot) => spot.layer == layer)
+          .map((spot) => spot.y)
+          .toSet()
+          .toList()
+        ..sort();
+      for (final y in rows) {
+        final row = layout.asMap().entries
+            .where((entry) => entry.value.layer == layer && entry.value.y == y)
+            .map((entry) => entry.key)
+            .toList()
+          ..sort((a, b) => layout[a].x.compareTo(layout[b].x));
+        var left = 0;
+        var right = row.length - 1;
+        while (left < right) {
+          order.add(row[left++]);
+          order.add(row[right--]);
+        }
+      }
+    }
+    if (!isValidRemovalOrder(layout, order)) {
+      throw StateError('Generated classic Mahjong removal order is invalid');
+    }
+    return order;
+  }
+
   /// Checks a complete proposed removal order against the availability rules.
   static bool isValidRemovalOrder(List<TileSpot> layout, List<int> order) {
     if (order.length != layout.length || order.toSet().length != layout.length) {
