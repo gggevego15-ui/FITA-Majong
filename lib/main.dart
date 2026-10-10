@@ -48,6 +48,8 @@ String _tr(String language, String key) {
     'language':['Language / Язык','ЯЗЫК','IDIOMA','LANGUE','SPRACHE','IDIOMA','LINGUA','DİL','语言','言語','언어','भाषा','اللغة'],
     'settings':['Settings','Настройки','Ajustes','Paramètres','Einstellungen','Configurações','Impostazioni','Ayarlar','设置','設定','설정','सेटिंग्स','الإعدادات'],
     'sound':['Sound effects','Звуковые эффекты','Efectos de sonido','Effets sonores','Soundeffekte','Efeitos sonoros','Effetti sonori','Ses efektleri','音效','効果音','효과음','ध्वनि प्रभाव','المؤثرات الصوتية'],
+    'comboEffects':['Combo effects','Эффекты комбо','Efectos de combo','Effets de combo','Combo-Effekte','Efeitos de combo','Effetti combo','Kombo efektleri','连击特效','コンボ効果','콤보 효과','कॉम्बो प्रभाव','تأثيرات الكومبو'],
+    'comboEffectsNote':['Enhanced sounds and flashes at x3, x5 and x10 streaks.','Усиленные звуки и вспышки на сериях x3, x5 и x10.','Sonidos y destellos mejorados en rachas x3, x5 y x10.','Sons et éclats renforcés aux séries x3, x5 et x10.','Verstärkte Töne und Blitze bei Serien x3, x5 und x10.','Sons e brilhos reforçados nas sequências x3, x5 e x10.','Suoni e lampi potenziati nelle serie x3, x5 e x10.','x3, x5 ve x10 serilerinde güçlendirilmiş sesler ve parlamalar.','连续配对达到 x3、x5 和 x10 时增强音效与闪光。','x3、x5、x10連続時に音とフラッシュを強化します。','x3, x5, x10 연속 매치에서 사운드와 섬광을 강화합니다.','x3, x5 और x10 लगातार जोड़ियों पर बेहतर ध्वनि और चमक।','أصوات وومضات أقوى عند سلاسل x3 وx5 وx10.'],
     'haptics':['Haptic feedback','Виброотклик','Respuesta háptica','Retour haptique','Haptisches Feedback','Resposta tátil','Feedback aptico','Dokunsal geri bildirim','触觉反馈','触覚フィードバック','햅틱 피드백','हैप्टिक प्रतिक्रिया','الاستجابة اللمسية'],
     'backgroundTheme':['BACKGROUND THEME','ТЕМА ФОНА','TEMA DE FONDO','THÈME DE FOND','HINTERGRUNDTHEMA','TEMA DE FUNDO','TEMA SFONDO','ARKA PLAN TEMASI','背景主题','背景テーマ','배경 테마','पृष्ठभूमि थीम','سمة الخلفية'],
     'tileStyle':['TILE STYLE','СТИЛЬ ФИШЕК','ESTILO DE FICHAS','STYLE DES TUILES','STEINSTIL','ESTILO DAS PEÇAS','STILE TESSERE','TAŞ STİLİ','牌面样式','牌のスタイル','타일 스타일','टाइल शैली','نمط القطع'],
@@ -204,6 +206,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int level = 1;
   bool sound = true;
   bool haptics = true;
+  bool comboEffects = true;
   int backgroundTheme = 0;
   int tileTheme = 0;
   int animationLevel = 2;
@@ -229,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundTheme = prefs.getInt('fita.theme.background') ?? 0;
       tileTheme = prefs.getInt('fita.theme.tiles') ?? 0;
       animationLevel = prefs.getInt('fita.animation.level') ?? 2;
+      comboEffects = prefs.getBool('fita.combo.effects') ?? true;
       language = prefs.getString('fita.language') ?? widget.initialLanguage;
     });
   }
@@ -310,6 +314,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundTheme: backgroundTheme,
       tileTheme: tileTheme,
       animationLevel: animationLevel,
+      comboEffects: comboEffects,
       language: language,
     )));
     if (won == true && mounted && selectedLevel == level) {
@@ -411,6 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 12),
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'sound')), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'haptics')), secondary: const Icon(Icons.vibration_rounded, color: pine)),
+      SwitchListTile(value: comboEffects, onChanged: (v) async { setState(() => comboEffects = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setBool('fita.combo.effects', v); }, title: Text(_tr(language, 'comboEffects')), subtitle: Text(_tr(language, 'comboEffectsNote')), secondary: const Icon(Icons.bolt_rounded, color: pine)),
       const Divider(height: 20),
       Text(_tr(language, 'backgroundTheme'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
@@ -443,8 +449,9 @@ class GameScreen extends StatefulWidget {
   final int backgroundTheme;
   final int tileTheme;
   final int animationLevel;
+  final bool comboEffects;
   final String language;
-  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2, this.language = 'en'});
+  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2, this.comboEffects = true, this.language = 'en'});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -705,8 +712,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (tiles[first] == tiles[i]) {
       matchStreak++;
       final comboLevel = matchStreak == 10 ? 3 : matchStreak == 5 ? 2 : matchStreak == 3 ? 1 : 0;
-      activeComboLevel = comboLevel;
-      _feedback(success: true, comboLevel: comboLevel);
+      activeComboLevel = widget.comboEffects ? comboLevel : 0;
+      _feedback(success: true, comboLevel: widget.comboEffects ? comboLevel : 0);
       setState(() {
         burst++;
         shaking = true;
