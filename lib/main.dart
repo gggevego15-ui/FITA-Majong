@@ -760,8 +760,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     const tileColors = [Color(0xFFFFFDF6), Color(0xFFFFD6E8), Color(0xFFB8F2E6), Color(0xFF22254B)];
     const tileSymbols = ['🌿', '🌈', '💎', '✨'];
-    var previewBackground = backgroundTheme.clamp(0, 3);
-    var previewTiles = tileTheme.clamp(0, 3);
+    var previewBackground = backgroundTheme.clamp(0, 3).toInt();
+    var previewTiles = tileTheme.clamp(0, 3).toInt();
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: cream,
