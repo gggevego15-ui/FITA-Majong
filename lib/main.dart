@@ -271,6 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int tileTheme = 0;
   int animationLevel = 2;
   bool dailyCompleted = false;
+  int dailyStreak = 0;
   String language = 'en';
 
   @override
@@ -296,6 +297,7 @@ class _HomeScreenState extends State<HomeScreen> {
       comboEffects = prefs.getBool('fita.combo.effects') ?? true;
       language = prefs.getString('fita.language') ?? widget.initialLanguage;
       dailyCompleted = prefs.getString('fita.daily.completed') == _todayKey();
+      dailyStreak = prefs.getInt('fita.daily.streak') ?? 0;
     });
   }
 
@@ -382,7 +384,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _dailySubtitle() {
-    return dailyCompleted ? '✓ ${_tr(language, 'completed')}' : _tr(language, 'dailyChallenge');
+    final status = dailyCompleted
+        ? '✓ ${_tr(language, 'completed')}'
+        : _tr(language, 'dailyChallenge');
+    return dailyStreak > 0 ? '$status  ·  🔥 $dailyStreak' : status;
   }
 
   Future<void> _launchDailyLevel() async {
@@ -407,8 +412,26 @@ class _HomeScreenState extends State<HomeScreen> {
       language: language,
     )));
     if (won == true) {
+      final now = DateTime.now().toUtc();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final yesterdayKey =
+          '${yesterday.year.toString().padLeft(4, '0')}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+      final lastCompleted = prefs.getString('fita.daily.lastCompleted');
+      final previousStreak = prefs.getInt('fita.daily.streak') ?? 0;
+      final nextStreak = lastCompleted == today
+          ? previousStreak
+          : lastCompleted == yesterdayKey
+              ? previousStreak + 1
+              : 1;
       await prefs.setString('fita.daily.completed', today);
-      if (mounted) setState(() => dailyCompleted = true);
+      await prefs.setString('fita.daily.lastCompleted', today);
+      await prefs.setInt('fita.daily.streak', nextStreak);
+      if (mounted) {
+        setState(() {
+          dailyCompleted = true;
+          dailyStreak = nextStreak;
+        });
+      }
     }
   }
 
@@ -758,6 +781,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     });
     _clock = Stopwatch()..start();
+    unawaited(_matchPlayer.setReleaseMode(ReleaseMode.stop));
+    // Warm all four sound variants before the first successful match.
+    Future<void>.delayed(Duration.zero, () {
+      for (var level = 0; level <= 3; level++) {
+        _soundCache.putIfAbsent(level, () => _buildBurstWav(comboLevel: level));
+      }
+    });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && !finished) setState(() {});
     });
@@ -891,9 +921,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Uint8List _buildBurstWav({int comboLevel = 0}) {
-    // Offline burst; combo adds a brighter rising chime on top of the impact.
-    const sampleRate = 11025;
-    final sampleCount = comboLevel > 0 ? (comboLevel == 3 ? 8820 : comboLevel == 2 ? 7056 : 5512) : 3528;
+    // A short, soft mallet chord. Generate PCM once and cache it so matching
+    // never has to synthesize audio on the interaction path.
+    const sampleRate = 22050;
+    final duration = comboLevel == 3
+        ? .54
+        : comboLevel == 2
+            ? .44
+            : comboLevel == 1
+                ? .36
+                : .28;
+    final sampleCount = (sampleRate * duration).round();
     final bytes = Uint8List(44 + sampleCount * 2);
     final header = ByteData.sublistView(bytes);
     void writeTag(int offset, String tag) {
@@ -914,30 +952,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     header.setUint16(34, 16, Endian.little);
     writeTag(36, 'data');
     header.setUint32(40, sampleCount * 2, Endian.little);
+
+    final root = 523.25 + comboLevel * 55.0;
+    final notes = <double>[root, root * 1.25, root * 1.5];
+    final offsets = <double>[0, .024, .048];
     for (var i = 0; i < sampleCount; i++) {
       final t = i / sampleRate;
-      final duration = sampleCount / sampleRate;
-      final envelope = sin(pi * min(1.0, t / duration)).clamp(0.0, 1.0) *
-          exp(-t * (comboLevel == 0 ? 8.5 : 5.2));
-      final baseFrequency = comboLevel == 0 ? 520.0 : 620.0 + comboLevel * 75.0;
-      final fundamental = sin(2 * pi * baseFrequency * t);
-      final overtone = sin(2 * pi * baseFrequency * 2.01 * t) * .24;
-      final softBody = sin(2 * pi * (baseFrequency * .5) * t) * .12;
-      final chimeEnvelope = comboLevel > 0
-          ? exp(-max(0.0, t - .025) * (7.0 - comboLevel)) *
-              min(1.0, t * 35.0)
-          : 0.0;
-      final chime = comboLevel > 0
-          ? (sin(2 * pi * (880 + comboLevel * 95) * t) * .20 +
-              sin(2 * pi * (1320 + comboLevel * 100) * t) * .10) *
-              chimeEnvelope
-          : 0.0;
-      final sample = ((fundamental * .52 + overtone + softBody + chime) *
-              envelope * 18000)
-          .round()
-          .clamp(-32768, 32767)
-          .toInt();
-      header.setInt16(44 + i * 2, sample, Endian.little);
+      var sample = 0.0;
+      for (var note = 0; note < notes.length; note++) {
+        final noteTime = t - offsets[note];
+        if (noteTime < 0) continue;
+        final envelope = (1 - exp(-noteTime * 150)) *
+            exp(-noteTime * (comboLevel == 0 ? 12.5 : 7.8));
+        final fundamental = sin(2 * pi * notes[note] * noteTime);
+        final overtone = sin(2 * pi * notes[note] * 2.76 * noteTime) * .12;
+        sample += (fundamental + overtone) * envelope *
+            (note == 0 ? .23 : note == 1 ? .18 : .14);
+      }
+      final pcm = (sample * 26000).round().clamp(-32768, 32767).toInt();
+      header.setInt16(44 + i * 2, pcm, Endian.little);
     }
     return bytes;
   }
@@ -1193,7 +1226,48 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ),
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
-      if (widget.roomCode != null) Positioned(top: 6, left: 12, right: 12, child: Material(color: cream.withValues(alpha: .96), elevation: 2, borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text('ROOM ${widget.roomCode}  ·  ${opponentJoined ? 'LIVE RACE' : 'WAITING FOR FRIEND'}', style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .8)), const SizedBox(height: 3), Text('You: ${72 - pairs}/72 pairs  ·  Friend: ${72 - opponentPairs}/72${opponentWon ? '  ·  Friend finished!' : ''}', style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w600))])))),
+      if (widget.roomCode != null)
+        Positioned(
+          top: 6,
+          left: 12,
+          right: 12,
+          child: Material(
+            color: cream.withValues(alpha: .96),
+            elevation: 2,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Row(children: [
+                Expanded(child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'ROOM ${widget.roomCode}  ·  ${opponentJoined ? 'LIVE RACE' : 'WAITING FOR FRIEND'}',
+                      style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .8),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'You: ${72 - pairs}/72  ·  Friend: ${72 - opponentPairs}/72${opponentWon ? '  ·  Friend finished!' : ''}',
+                      style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                )),
+                IconButton(
+                  tooltip: 'Copy room code',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: widget.roomCode!));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Room code copied: ${widget.roomCode}')),
+                    );
+                  },
+                  icon: const Icon(Icons.copy_rounded, color: pine, size: 18),
+                ),
+              ]),
+            ),
+          ),
+        ),
       if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
       if (comboPopupLevel > 0) Positioned(
         top: 72,
