@@ -20,11 +20,6 @@ class FirebaseRuntimeConfig {
   static const iosAppId = String.fromEnvironment('FITA_FIREBASE_IOS_APP_ID');
   static const iosBundleId = String.fromEnvironment('FITA_IOS_BUNDLE_ID');
 
-  static const googleServerClientId =
-      String.fromEnvironment('FITA_GOOGLE_SERVER_CLIENT_ID');
-  static const googleIosClientId =
-      String.fromEnvironment('FITA_GOOGLE_IOS_CLIENT_ID');
-
   static bool get isConfigured {
     final common = projectId.isNotEmpty && messagingSenderId.isNotEmpty;
     if (Platform.isAndroid) {
@@ -63,7 +58,6 @@ class FirebaseRuntimeConfig {
         messagingSenderId: messagingSenderId,
         projectId: projectId,
         iosBundleId: iosBundleId,
-        iosClientId: googleIosClientId.isEmpty ? null : googleIosClientId,
       );
     }
 
