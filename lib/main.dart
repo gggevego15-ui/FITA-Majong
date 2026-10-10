@@ -1053,7 +1053,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             scaleEnabled: true,
             panEnabled: true,
             constrained: false,
-            boundaryMargin: const EdgeInsets.all(80),
+            alignment: Alignment.center,
+            // A little more glide after lifting a finger makes panning feel less abrupt.
+            interactionEndFrictionCoefficient: 0.000008,
+            scaleFactor: 250,
+            boundaryMargin: const EdgeInsets.all(120),
             clipBehavior: Clip.hardEdge,
             child: SizedBox(
             width: tileWidth * 14.6,
