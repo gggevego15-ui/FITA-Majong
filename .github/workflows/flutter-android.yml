@@ -1,0 +1,25 @@
+name: Flutter mobile builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Generate native Android project files
+        run: |
+          flutter create /tmp/fita_native --project-name fita_mahjong --platforms=android,ios
+          cp -R /tmp/fita_native/android ./android
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fita-mahjong-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
