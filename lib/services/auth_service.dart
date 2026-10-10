@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import '../config/firebase_runtime_config.dart';
@@ -73,7 +74,8 @@ class AuthService {
   Future<UserCredential> signInWithGoogle() async {
     _requireFirebase();
     final google = GoogleSignIn(
-      clientId: FirebaseRuntimeConfig.googleIosClientId.isEmpty
+      clientId: !Platform.isIOS ||
+              FirebaseRuntimeConfig.googleIosClientId.isEmpty
           ? null
           : FirebaseRuntimeConfig.googleIosClientId,
       serverClientId: FirebaseRuntimeConfig.googleServerClientId.isEmpty
