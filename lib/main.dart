@@ -392,100 +392,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _newBoard();
   }
 
-  /// A compact, 144-tile turtle-inspired layout: 96 base tiles plus
-  /// three centered terraces (24, 16, and 8 tiles).
-  List<_TileSpot> _makeSpots(int tileCount) {
-    final result = <_TileSpot>[];
-    for (var y = 0; y < 8; y++) {
-      for (var x = 0; x < 12; x++) {
-        result.add(_TileSpot(x: x, y: y, layer: 0));
-      }
-    }
-    for (var y = 2; y < 6; y++) {
-      for (var x = 3; x < 9; x++) {
-        result.add(_TileSpot(x: x, y: y, layer: 1));
-      }
-    }
-    for (var y = 2; y < 6; y++) {
-      for (var x = 4; x < 8; x++) {
-        result.add(_TileSpot(x: x, y: y, layer: 2));
-      }
-    }
-    for (var y = 2; y < 6; y++) {
-      for (var x = 5; x < 7; x++) {
-        result.add(_TileSpot(x: x, y: y, layer: 3));
-      }
-    }
-    assert(result.length == 144);
-    return result;
-  }
-
-  /// Builds a guaranteed legal peel order: clear the top terrace first, then
-  /// work outward layer-by-layer. Every row has even width, so its two ends
-  /// can be removed in pairs until the row is empty.
-  List<int> _classicRemovalOrder(List<_TileSpot> layout) {
-    final order = <int>[];
-    for (var layer = 3; layer >= 0; layer--) {
-      final rows = layout
-          .asMap()
-          .entries
-          .where((entry) => entry.value.layer == layer)
-          .map((entry) => entry.value.y)
-          .toSet()
-          .toList()
-        ..sort();
-      for (final y in rows) {
-        final row = layout.asMap().entries
-            .where((entry) => entry.value.layer == layer && entry.value.y == y)
-            .map((entry) => entry.key)
-            .toList()
-          ..sort((a, b) => layout[a].x.compareTo(layout[b].x));
-        var left = 0;
-        var right = row.length - 1;
-        while (left < right) {
-          order.add(row[left++]);
-          order.add(row[right--]);
-        }
-      }
-    }
-    if (!MahjongRules.isValidRemovalOrder(layout, order)) {
-      throw StateError('Generated classic Mahjong removal order is invalid');
-    }
-    return order;
-  }
 
   bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
       MahjongRules.isAvailable(index, layout, gone);
 
-  List<int>? _solveLayout(List<_TileSpot> layout) {
-    final dead = <String>{};
-    List<int>? search(Set<int> gone) {
-      if (gone.length == layout.length) return <int>[];
-      final key = gone.toList()..sort();
-      final encoded = key.join(',');
-      if (dead.contains(encoded)) return null;
-      final open = List.generate(layout.length, (i) => i)
-        .where((i) => _availableInState(i, layout, gone)).toList();
-      // Try exposed upper-layer tiles first, then edge tiles.
-      open.sort((a, b) => layout[b].layer.compareTo(layout[a].layer));
-      for (var a = 0; a < open.length; a++) {
-        for (var b = a + 1; b < open.length; b++) {
-          final next = {...gone, open[a], open[b]};
-          final tail = search(next);
-          if (tail != null) return [open[a], open[b], ...tail];
-        }
-      }
-      dead.add(encoded);
-      return null;
-    }
-    return search(<int>{});
-  }
 
   void _newBoard() {
     pairs = 72;
     const tileCount = 144;
-    spots = _makeSpots(tileCount);
-    final solvableOrder = _classicRemovalOrder(spots);
+    spots = MahjongRules.classicTurtleLayout();
+    final solvableOrder = MahjongRules.classicRemovalOrder(spots);
     final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].toList()
       ..shuffle(Random(widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997));
     tiles = List.filled(tileCount, '');
