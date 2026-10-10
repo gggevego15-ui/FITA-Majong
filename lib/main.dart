@@ -39,6 +39,8 @@ String _tr(String language, String key) {
     'tileGarden':['Tile garden','Сад фишек','Jardín de fichas','Jardin de tuiles','Steingarten','Jardim de peças','Giardino di tessere','Taş bahçesi','麻将牌花园','牌の庭','타일 정원','टाइल बगीचा','حديقة القطع'],
     'exploreTiles':['Explore patterns and tile sets','Узоры и наборы фишек','Explora patrones y fichas','Explore les motifs et les tuiles','Muster und Steinsätze entdecken','Explore padrões e conjuntos','Esplora motivi e tessere','Desenleri ve taş setlerini keşfet','探索图案和牌组','模様と牌セットを探そう','패턴과 타일 세트 탐험','पैटर्न और टाइल सेट देखें','استكشف الأنماط ومجموعات القطع'],
     'breathe':['Breathe in. Match two. Breathe out.','Вдохни. Найди пару. Выдохни.','Respira. Encuentra dos. Exhala.','Respire. Trouve une paire. Expire.','Atmen. Zwei finden. Ausatmen.','Respire. Combine duas. Expire.','Respira. Abbina due. Espira.','Nefes al. İkiliyi eşleştir. Nefes ver.','深呼吸。配对两张。慢慢呼气。','息を吸って、二枚を合わせ、吐く。','숨을 쉬고, 두 개를 맞추고, 내쉬세요.','साँस लें। दो मिलाएँ। साँस छोड़ें।','تنفس. طابق قطعتين. ازفر.'],
+    'player':['Player','Игрок','Jugador','Joueur','Spieler','Jogador','Giocatore','Oyuncu','玩家','プレイヤー','플레이어','खिलाड़ी','اللاعب'],
+    'completed':['Completed','Пройдено','Completado','Terminé','Abgeschlossen','Concluído','Completato','Tamamlandı','已完成','クリア済み','완료','पूरा हुआ','مكتمل'],
     'language':['Language / Язык','ЯЗЫК','IDIOMA','LANGUE','SPRACHE','IDIOMA','LINGUA','DİL','语言','言語','언어','भाषा','اللغة'],
     'settings':['Settings','Настройки','Ajustes','Paramètres','Einstellungen','Configurações','Impostazioni','Ayarlar','设置','設定','설정','सेटिंग्स','الإعدادات'],
     'sound':['Sound effects','Звуковые эффекты','Efectos de sonido','Effets sonores','Soundeffekte','Efeitos sonoros','Effetti sonori','Ses efektleri','音效','効果音','효과음','ध्वनि प्रभाव','المؤثرات الصوتية'],
@@ -370,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(_tr(language, 'bestLevels'), style: const TextStyle(color: Colors.black54)),
         const SizedBox(height: 12),
         if (scores.isEmpty) Padding(padding: const EdgeInsets.all(18), child: Text(_tr(language, 'noRecords'))),
-        ...scores.take(10).toList().asMap().entries.map((e) => ListTile(leading: CircleAvatar(backgroundColor: const Color(0xFFFFE4B5), child: Text('${e.key + 1}')), title: Text(e.value.split('|').first), subtitle: Text(e.value.contains('|') ? 'Level ${e.value.split('|').last}' : 'Completed'), dense: true)),
+        ...scores.take(10).toList().asMap().entries.map((e) => ListTile(leading: CircleAvatar(backgroundColor: const Color(0xFFFFE4B5), child: Text('${e.key + 1}')), title: Text(e.value.split('|').first), subtitle: Text(e.value.contains('|') ? '${_tr(language, 'level')} ${e.value.split('|').last}' : _tr(language, 'completed')), dense: true)),
       ]),
     ));
   }
@@ -653,7 +655,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
     final scores = prefs.getStringList('fita.leaderboard') ?? <String>[];
-    final record = 'Player|Level ${widget.level}';
+    final record = '${_tr(widget.language, 'player')}|${_tr(widget.language, 'level')} ${widget.level}';
     if (!scores.contains(record)) {
       scores.insert(0, record);
       await prefs.setStringList('fita.leaderboard', scores.take(20).toList());
