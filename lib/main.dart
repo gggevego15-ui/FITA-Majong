@@ -474,6 +474,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int burst = 0;
   int matchStreak = 0;
   int activeComboLevel = 0;
+  int comboPopupLevel = 0;
+  Timer? _comboPopupTimer;
   bool shaking = false;
   final Set<int> removed = {};
   int? selected;
@@ -713,6 +715,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       matchStreak++;
       final comboLevel = matchStreak == 10 ? 3 : matchStreak == 5 ? 2 : matchStreak == 3 ? 1 : 0;
       activeComboLevel = widget.comboEffects ? comboLevel : 0;
+      comboPopupLevel = widget.comboEffects ? comboLevel : 0;
+      _comboPopupTimer?.cancel();
+      if (comboPopupLevel > 0) {
+        _comboPopupTimer = Timer(Duration(milliseconds: comboLevel == 3 ? 1900 : comboLevel == 2 ? 1600 : 1300), () {
+          if (mounted) setState(() => comboPopupLevel = 0);
+        });
+      }
       _feedback(success: true, comboLevel: widget.comboEffects ? comboLevel : 0);
       setState(() {
         burst++;
@@ -732,6 +741,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     } else {
       matchStreak = 0;
       activeComboLevel = 0;
+      comboPopupLevel = 0;
+      _comboPopupTimer?.cancel();
       _feedback();
       setState(() {
         mismatch = i;
@@ -835,6 +846,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _ticker?.cancel();
+    _comboPopupTimer?.cancel();
     _flightEntry?.remove();
     _flightController.dispose();
     _winController.dispose();
@@ -857,6 +869,38 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
       if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
+      if (comboPopupLevel > 0) Positioned(
+        top: 72,
+        left: 0,
+        right: 0,
+        child: IgnorePointer(child: Center(child: TweenAnimationBuilder<double>(
+          key: ValueKey('combo-popup-$comboPopupLevel-$matchStreak'),
+          tween: Tween<double>(begin: 0.65, end: 1),
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.elasticOut,
+          builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: comboPopupLevel == 3 ? 28 : 22, vertical: comboPopupLevel == 3 ? 14 : 11),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: comboPopupLevel == 3
+                ? const [Color(0xFFFF4D8D), Color(0xFFFFC857)]
+                : comboPopupLevel == 2
+                  ? const [Color(0xFF7B61FF), Color(0xFFFF4D8D)]
+                  : const [Color(0xFF00A88F), Color(0xFF8ACB88)]),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [BoxShadow(color: (comboPopupLevel == 3 ? const Color(0xFFFF4D8D) : pine).withValues(alpha: .32), blurRadius: comboPopupLevel == 3 ? 28 : 18, spreadRadius: comboPopupLevel == 3 ? 3 : 1, offset: const Offset(0, 6))],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(comboPopupLevel == 3 ? Icons.auto_awesome_rounded : comboPopupLevel == 2 ? Icons.bolt_rounded : Icons.star_rounded, color: Colors.white, size: comboPopupLevel == 3 ? 27 : 22),
+              const SizedBox(width: 9),
+              Text('COMBO x${comboPopupLevel == 1 ? 3 : comboPopupLevel == 2 ? 5 : 10}', style: TextStyle(color: Colors.white, fontSize: comboPopupLevel == 3 ? 25 : comboPopupLevel == 2 ? 22 : 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, shadows: const [Shadow(color: Color(0x55000000), blurRadius: 5, offset: Offset(0, 2))])),
+              const SizedBox(width: 5),
+              const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 20),
+            ]),
+          ),
+        ))),
+      ),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: AnimatedContainer(duration: const Duration(milliseconds: 70), transform: Matrix4.translationValues(shaking ? (Random().nextDouble() - .5) * (10 + activeComboLevel * 4) : 0, shaking ? (Random().nextDouble() - .5) * (8 + activeComboLevel * 3) : 0, 0), child: Column(children: [
         Row(children: [
           _StatPill(label: _gameLabel(widget.language, 'moves'), value: '$moves'),
