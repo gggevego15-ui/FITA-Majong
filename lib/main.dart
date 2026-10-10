@@ -74,7 +74,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() => _busy = true);
     try {
       await action();
-      await ProgressStore.instance.load();
+      final saved = await ProgressStore.instance.load();
+      await ProgressStore.instance.save(
+        level: (saved['level'] as num?)?.toInt() ?? 1,
+        sound: saved['sound'] as bool? ?? true,
+        haptics: saved['haptics'] as bool? ?? true,
+      );
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
