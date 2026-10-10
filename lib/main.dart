@@ -590,8 +590,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           backgroundColor: cream,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           icon: const Icon(Icons.celebration_rounded, size: 48, color: Color(0xFFD58D59)),
-          title: const Text('Garden restored!', textAlign: TextAlign.center, style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
-          content: Text('You matched every pair in $moves moves · $elapsed', textAlign: TextAlign.center),
+          title: const Text('Mahjong mastered!', textAlign: TextAlign.center, style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
+          content: Text('Every pair is matched in $moves moves · $elapsed', textAlign: TextAlign.center),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
             FilledButton(
@@ -650,7 +650,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7);
+          final tileWidth = min((constraints.maxWidth - 24) / 4.35, (constraints.maxHeight - 24) / 4.7).clamp(34.0, 78.0);
           final tileHeight = tileWidth * 1.08;
           return Center(child: SizedBox(
             width: tileWidth * 4.35,
