@@ -77,7 +77,7 @@ String _tr(String language, String key) {
     'noRecords':['No records yet — finish your first level!','Записей пока нет — пройди первый уровень!','Aún no hay registros: ¡termina tu primer nivel!','Aucun record — termine ton premier niveau !','Noch keine Rekorde — schließe dein erstes Level ab!','Sem registros — conclua seu primeiro nível!','Nessun record — completa il primo livello!','Henüz kayıt yok — ilk seviyeni bitir!','暂无记录——完成第一关吧！','記録はありません。最初のレベルをクリアしよう！','기록이 없어요. 첫 레벨을 완료해 보세요!','अभी कोई रिकॉर्ड नहीं — पहला स्तर पूरा करें!','لا توجد سجلات بعد — أكمل المستوى الأول!'],
     'savedLocal':['Saved on this device; cloud sync is unavailable right now.','Сохранено на устройстве; облачная синхронизация сейчас недоступна.','Guardado en el dispositivo; la sincronización no está disponible.','Enregistré sur cet appareil ; synchronisation indisponible.','Lokal gespeichert; Cloud-Synchronisierung derzeit nicht verfügbar.','Salvo no dispositivo; sincronização indisponível agora.','Salvato sul dispositivo; sincronizzazione cloud non disponibile.','Cihaza kaydedildi; bulut eşitlemesi şu an kullanılamıyor.','已保存在本机；云同步暂不可用。','端末に保存しました。クラウド同期は現在利用できません。','기기에 저장됨. 클라우드 동기화는 현재 사용할 수 없어요.','डिवाइस पर सहेजा गया; क्लाउड सिंक अभी उपलब्ध नहीं।','حُفظ على الجهاز؛ المزامنة السحابية غير متاحة الآن.'],
     'dailyPlanned':['Daily challenges are planned for a future update.','Ежедневные испытания появятся в будущем обновлении.','Los retos diarios llegarán en una futura actualización.','Les défis quotidiens arriveront dans une prochaine mise à jour.','Tägliche Herausforderungen folgen in einem zukünftigen Update.','Desafios diários chegarão numa atualização futura.','Le sfide giornaliere arriveranno in un futuro aggiornamento.','Günlük görevler gelecek güncellemede eklenecek.','每日挑战将在未来版本推出。','デイリーチャレンジは今後の更新で追加予定です。','일일 도전은 향후 업데이트에서 제공됩니다.','दैनिक चुनौतियाँ भविष्य के अपडेट में आएँगी।','ستتوفر التحديات اليومية في تحديث قادم.'],
-    'multiplayerPlanned':['Online multiplayer is planned; no live matches yet.','Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
+    'dailyDone':['Today’s challenge is complete. Come back tomorrow!','Сегодняшнее испытание уже пройдено. Возвращайся завтра!','¡Reto de hoy completado! Vuelve mañana.','Défi du jour terminé ! Reviens demain.','Tagesrätsel geschafft! Komm morgen wieder.','Desafio de hoje concluído! Volte amanhã.','Sfida di oggi completata! Torna domani.','Bugünün görevi tamamlandı. Yarın tekrar gel!','今日挑战已完成，明天再来！','今日のチャレンジは完了！また明日。','오늘의 도전을 완료했어요. 내일 다시 만나요!','आज की चुनौती पूरी हुई। कल फिर आएँ!','اكتمل تحدي اليوم. عد غدًا!'],\n    'multiplayerPlanned':['Online multiplayer is planned; no live matches yet.','Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
   };
   final values = t[key];
   if (values == null) return key;
@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
   );
 
   String _todayKey() {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
@@ -943,9 +943,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _playMatchBurst({int comboLevel = 0}) async {
     try {
+      final soundKey = comboLevel.clamp(0, 3).toInt();
       final soundData = _soundCache.putIfAbsent(
-        comboLevel.clamp(0, 3),
-        () => _buildBurstWav(comboLevel: comboLevel.clamp(0, 3)),
+        soundKey,
+        () => _buildBurstWav(comboLevel: soundKey),
       );
       await _matchPlayer.stop();
       await _matchPlayer.play(BytesSource(soundData), volume: .68);
