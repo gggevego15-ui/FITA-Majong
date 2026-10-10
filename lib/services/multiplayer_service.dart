@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'auth_service.dart';
 
@@ -21,7 +22,10 @@ class MultiplayerService {
     if (!isAvailable) {
       throw StateError('Онлайн-игра недоступна: сначала настрой Firebase для приложения.');
     }
-    return AuthService.instance.continueAsGuest();
+    await AuthService.instance.continueAsGuest();
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw StateError('Не удалось войти в Firebase. Проверь анонимную авторизацию.');
+    return uid;
   }
 
   int _seedFor(String code) {
