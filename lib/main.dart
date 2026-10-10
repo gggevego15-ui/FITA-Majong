@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
         haptics: haptics,
       );
     } catch (error) {
-      if (mounted) _message(context, 'Saved on this device; cloud sync will retry later.');
+      if (mounted) _message(context, 'Saved on this device; cloud sync is unavailable right now.');
     }
   }
 
