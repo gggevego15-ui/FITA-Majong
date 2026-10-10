@@ -269,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int backgroundTheme = 0;
   int tileTheme = 0;
   int animationLevel = 2;
+  bool dailyCompleted = false;
   String language = 'en';
 
   @override
@@ -293,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
       animationLevel = prefs.getInt('fita.animation.level') ?? 2;
       comboEffects = prefs.getBool('fita.combo.effects') ?? true;
       language = prefs.getString('fita.language') ?? widget.initialLanguage;
+      dailyCompleted = prefs.getString('fita.daily.completed') == _todayKey();
     });
   }
 
@@ -379,14 +381,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _dailySubtitle() {
-    return _tr(language, 'dailyChallenge') + (DateTime.now().hour < 12 ? ' · ☀' : ' · 🌙');
+    return dailyCompleted ? '✓ ${_tr(language, 'completed')}' : _tr(language, 'dailyChallenge');
   }
 
   Future<void> _launchDailyLevel() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _todayKey();
     if (!mounted) return;
-    final alreadyDone = prefs.getString('fita.daily.completed') == today;
+    final alreadyDone = dailyCompleted || prefs.getString('fita.daily.completed') == today;
     if (alreadyDone) {
       _message(context, _tr(language, 'dailyDone'));
       return;
@@ -405,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
     )));
     if (won == true) {
       await prefs.setString('fita.daily.completed', today);
-      if (mounted) setState(() {});
+      if (mounted) setState(() => dailyCompleted = true);
     }
   }
 
