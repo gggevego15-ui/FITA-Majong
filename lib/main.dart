@@ -83,7 +83,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       children: [
                         Container(
                           width: 46, height: 46,
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(.82), borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: .82), borderRadius: BorderRadius.circular(16)),
                           child: const Icon(Icons.spa_rounded, color: pine, size: 28),
                         ),
                         const SizedBox(width: 12),
@@ -99,7 +99,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       style: TextStyle(fontSize: 34, height: 1.12, fontWeight: FontWeight.w900, color: pine, letterSpacing: -.8)),
                     const SizedBox(height: 12),
                     Text('Find your rhythm in a garden of puzzles.', textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15, color: pine.withOpacity(.78))),
+                      style: TextStyle(fontSize: 15, color: pine.withValues(alpha: .78))),
                     const Spacer(flex: 2),
                     _TileShowcase(),
                     const SizedBox(height: 28),
@@ -110,7 +110,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         child: Text(_busy ? 'Please wait…' : 'Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       )),
                     const SizedBox(height: 10),
-                    Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withOpacity(.7))),
+                    Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withValues(alpha: .7))),
                   ],
                 ),
               ),
@@ -182,12 +182,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Text('Your quiet corner', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: pine)),
             ]),
             const Spacer(),
-            IconButton.filledTonal(onPressed: () => _settings(context), icon: const Icon(Icons.tune_rounded), style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(.75), foregroundColor: pine)),
+            IconButton.filledTonal(onPressed: () => _settings(context), icon: const Icon(Icons.tune_rounded), style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: .75), foregroundColor: pine)),
           ]),
           const SizedBox(height: 22),
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF47765D), Color(0xFF8AA77B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: pine.withOpacity(.16), blurRadius: 24, offset: const Offset(0, 12))]),
+            decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF47765D), Color(0xFF8AA77B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(28), boxShadow: [BoxShadow(color: pine.withValues(alpha: .16), blurRadius: 24, offset: const Offset(0, 12))]),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -195,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 8),
                   Text('A fresh puzzle\nawaits you.', style: TextStyle(color: Colors.white, fontSize: 25, height: 1.12, fontWeight: FontWeight.w900)),
                 ])),
-                Container(width: 88, height: 100, decoration: BoxDecoration(color: Colors.white.withOpacity(.16), borderRadius: BorderRadius.circular(24)), child: const Icon(Icons.park_rounded, color: Color(0xFFFFE4A8), size: 62)),
+                Container(width: 88, height: 100, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(24)), child: const Icon(Icons.park_rounded, color: Color(0xFFFFE4A8), size: 62)),
               ]),
               const SizedBox(height: 18),
               SizedBox(width: double.infinity, height: 48, child: FilledButton(
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _settings(context)),
           const SizedBox(height: 18),
-          Center(child: Text('Breathe in. Match two. Breathe out.', style: TextStyle(color: pine.withOpacity(.7), fontStyle: FontStyle.italic))),
+          Center(child: Text('Breathe in. Match two. Breathe out.', style: TextStyle(color: pine.withValues(alpha: .7), fontStyle: FontStyle.italic))),
         ]))),
       ])),
     ]),
@@ -591,7 +591,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(.72), borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: .72), borderRadius: BorderRadius.circular(14)),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             const Icon(Icons.spa_rounded, color: leaf, size: 18),
             const SizedBox(width: 8),
@@ -700,7 +700,7 @@ class _BurstPainter extends CustomPainter {
     for (final p in particles) {
       final t = Curves.easeOutCubic.transform(progress);
       final point = center + Offset(cos(p.angle) * p.distance * t, sin(p.angle) * p.distance * t);
-      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withOpacity((1 - progress).clamp(0.0, 1.0).toDouble()));
+      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withValues(alpha: (1 - progress).clamp(0.0, 1.0).toDouble()));
     }
   }
   @override
@@ -730,17 +730,17 @@ class _TileArtworkPainter extends CustomPainter {
     final accent = colors[(seed.abs() + 1) % colors.length];
     final secondary = colors[(seed.abs() + 2) % colors.length];
     // A small illustrated medallion: layered rings, hand-drawn petals, and a stem.
-    paint.color = dark.withOpacity(.9);
+    paint.color = dark.withValues(alpha: .9);
     canvas.drawCircle(center, radius, paint);
     paint
-      ..color = accent.withOpacity(.85)
+      ..color = accent.withValues(alpha: .85)
       ..strokeWidth = 1.35;
     canvas.drawCircle(center, radius * .76, paint);
     final petals = 5 + seed.abs() % 4;
     for (var i = 0; i < petals; i++) {
       final angle = (pi * 2 * i / petals) + (seed % 11) * .04;
       final petalCenter = center + Offset(cos(angle) * radius * .48, sin(angle) * radius * .48);
-      fill.color = (i.isEven ? accent : secondary).withOpacity(.88);
+      fill.color = (i.isEven ? accent : secondary).withValues(alpha: .88);
       canvas.drawOval(Rect.fromCenter(center: petalCenter, width: radius * .48, height: radius * .30).shift(Offset(cos(angle) * 1.2, sin(angle) * 1.2)), fill);
     }
     fill.color = highlighted ? const Color(0xFFFFF0B4) : colors[3];
@@ -759,7 +759,7 @@ class _TileArtworkPainter extends CustomPainter {
         ..quadraticBezierTo(center.dx + side * radius * .65, y - radius * .5, center.dx + side * radius * .75, y + radius * .05)
         ..quadraticBezierTo(center.dx + side * radius * .35, y + radius * .35, center.dx, y)
         ..close();
-      fill.color = secondary.withOpacity(.92);
+      fill.color = secondary.withValues(alpha: .92);
       canvas.drawPath(leafPath, fill);
     }
     if (highlighted) {
@@ -801,7 +801,7 @@ class _GardenTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
         boxShadow: [
-          BoxShadow(color: pine.withOpacity(selected ? .2 : .1), blurRadius: selected ? 13 : 6, offset: Offset(0, selected ? 6 : 3)),
+          BoxShadow(color: pine.withValues(alpha: selected ? .2 : .1), blurRadius: selected ? 13 : 6, offset: Offset(0, selected ? 6 : 3)),
           const BoxShadow(color: Colors.white, blurRadius: 0, offset: Offset(-1, -1)),
         ],
       ),
@@ -811,8 +811,8 @@ class _GardenTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Stack(children: [
-            Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
-            Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withOpacity(.7))),
+            Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
+            Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
             Center(child: AnimatedSwitcher(
               duration: Duration(milliseconds: animationLevel == 0 ? 90 : 180),
               transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
@@ -851,28 +851,28 @@ class _StatPill extends StatelessWidget {
   final String value;
   const _StatPill({required this.label, required this.value});
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), decoration: BoxDecoration(color: Colors.white.withOpacity(.8), borderRadius: BorderRadius.circular(15)), child: Column(children: [Text(label, style: const TextStyle(fontSize: 9, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800)), Text(value, style: const TextStyle(fontSize: 19, color: pine, fontWeight: FontWeight.w900))]));
+  Widget build(BuildContext context) => Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .8), borderRadius: BorderRadius.circular(15)), child: Column(children: [Text(label, style: const TextStyle(fontSize: 9, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800)), Text(value, style: const TextStyle(fontSize: 19, color: pine, fontWeight: FontWeight.w900))]));
 }
 
 class _ModeCard extends StatelessWidget {
   final IconData icon; final String title; final String subtitle; final Color color; final VoidCallback onTap;
   const _ModeCard({required this.icon, required this.title, required this.subtitle, required this.color, required this.onTap});
   @override
-  Widget build(BuildContext context) => Material(color: color, borderRadius: BorderRadius.circular(22), child: InkWell(borderRadius: BorderRadius.circular(22), onTap: onTap, child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: pine, size: 25), const SizedBox(height: 18), Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: pine, fontSize: 16)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(color: pine.withOpacity(.75), fontSize: 11, height: 1.3))]))));
+  Widget build(BuildContext context) => Material(color: color, borderRadius: BorderRadius.circular(22), child: InkWell(borderRadius: BorderRadius.circular(22), onTap: onTap, child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: pine, size: 25), const SizedBox(height: 18), Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: pine, fontSize: 16)), const SizedBox(height: 4), Text(subtitle, style: TextStyle(color: pine.withValues(alpha: .75), fontSize: 11, height: 1.3))]))));
 }
 
 class _WideAction extends StatelessWidget {
   final IconData icon; final String title; final String subtitle; final VoidCallback onTap;
   const _WideAction({required this.icon, required this.title, required this.subtitle, required this.onTap});
   @override
-  Widget build(BuildContext context) => Material(color: Colors.white.withOpacity(.82), borderRadius: BorderRadius.circular(18), child: InkWell(borderRadius: BorderRadius.circular(18), onTap: onTap, child: Padding(padding: const EdgeInsets.all(15), child: Row(children: [Container(width: 43, height: 43, decoration: BoxDecoration(color: const Color(0xFFE1EBD9), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: pine)), const SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: pine, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(subtitle, style: TextStyle(color: pine.withOpacity(.7), fontSize: 12))])), const Icon(Icons.chevron_right_rounded, color: pine)]))));
+  Widget build(BuildContext context) => Material(color: Colors.white.withValues(alpha: .82), borderRadius: BorderRadius.circular(18), child: InkWell(borderRadius: BorderRadius.circular(18), onTap: onTap, child: Padding(padding: const EdgeInsets.all(15), child: Row(children: [Container(width: 43, height: 43, decoration: BoxDecoration(color: const Color(0xFFE1EBD9), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: pine)), const SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: pine, fontWeight: FontWeight.w900)), const SizedBox(height: 3), Text(subtitle, style: TextStyle(color: pine.withValues(alpha: .7), fontSize: 12))])), const Icon(Icons.chevron_right_rounded, color: pine)]))));
 }
 
 class _TileShowcase extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = [('🍃', const Color(0xFFE3EDD9)), ('🌼', const Color(0xFFFFE7AF)), ('🍄', const Color(0xFFF6D8C8)), ('🦋', const Color(0xFFD9E8EF))];
-    return Row(mainAxisAlignment: MainAxisAlignment.center, children: data.map((e) => Transform.rotate(angle: (data.indexOf(e) - 1.5) * .07, child: Container(margin: const EdgeInsets.symmetric(horizontal: 4), width: 61, height: 72, decoration: BoxDecoration(color: e.$2, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: pine.withOpacity(.12), blurRadius: 8, offset: const Offset(0, 5))]), child: Center(child: Text(e.$1, style: const TextStyle(fontSize: 27)))))).toList());
+    return Row(mainAxisAlignment: MainAxisAlignment.center, children: data.map((e) => Transform.rotate(angle: (data.indexOf(e) - 1.5) * .07, child: Container(margin: const EdgeInsets.symmetric(horizontal: 4), width: 61, height: 72, decoration: BoxDecoration(color: e.$2, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white, width: 2), boxShadow: [BoxShadow(color: pine.withValues(alpha: .12), blurRadius: 8, offset: const Offset(0, 5))]), child: Center(child: Text(e.$1, style: const TextStyle(fontSize: 27)))))).toList());
   }
 }
 
@@ -897,7 +897,7 @@ class NatureBackdrop extends StatelessWidget {
 
 class _Sun extends StatelessWidget {
   @override
-  Widget build(BuildContext context) => Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFD9A1).withOpacity(.6)));
+  Widget build(BuildContext context) => Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFFFD9A1).withValues(alpha: .6)));
 }
 class _Hill extends StatelessWidget {
   final double width; final double height; final Color color;
