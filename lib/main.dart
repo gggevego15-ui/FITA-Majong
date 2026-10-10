@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -59,40 +58,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
   }
 
-  Future<void> _signInGoogle() async {
-    await _runProvider('Google', AuthService.instance.signInWithGoogle);
-  }
-
-  Future<void> _signInApple() async {
-    await _runProvider('Apple', AuthService.instance.signInWithApple);
-  }
-
-  Future<void> _runProvider(
-    String provider,
-    Future<dynamic> Function() action,
-  ) async {
-    setState(() => _busy = true);
-    try {
-      await action();
-      final saved = await ProgressStore.instance.load();
-      await ProgressStore.instance.save(
-        level: (saved['level'] as num?)?.toInt() ?? 1,
-        sound: saved['sound'] as bool? ?? true,
-        haptics: saved['haptics'] as bool? ?? true,
-      );
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } on AuthFlowCancelled {
-      // User dismissed the provider's sign-in sheet.
-    } catch (error) {
-      _notice('$provider sign-in failed: $error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
   void _notice(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -138,26 +103,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       child: FilledButton(
                         style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
                         onPressed: _busy ? null : _continueAsGuest,
-                        child: Text(_busy ? 'Please wait…' : 'Play as guest', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        child: Text(_busy ? 'Please wait…' : 'Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       )),
                     const SizedBox(height: 12),
-                    Row(children: [
-                      Expanded(child: OutlinedButton.icon(
-                        onPressed: _busy ? null : _signInGoogle,
-                        icon: const Icon(Icons.g_mobiledata_rounded, size: 26),
-                        label: const Text('Google'),
-                        style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      )),
-                      if (Platform.isIOS) ...[
-                        const SizedBox(width: 10),
-                        Expanded(child: OutlinedButton.icon(
-                          onPressed: _busy ? null : _signInApple,
-                          icon: const Icon(Icons.apple_rounded, size: 22),
-                          label: const Text('Apple'),
-                          style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                        )),
-                      ],
-                    ]),
                     const SizedBox(height: 10),
                     Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withOpacity(.7))),
                   ],
@@ -277,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       const SizedBox(height: 8),
-      const Text('Preferences are stored locally; cloud sync is used when your account and network are available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
+      const Text('Preferences are stored locally and sync to the cloud when Firebase is configured and the network is available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
     ]),
   )));
 
