@@ -857,15 +857,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   child: AnimatedOpacity(
                     opacity: gone ? 0 : enabled ? 1 : .58,
                     duration: const Duration(milliseconds: 180),
-                    child: gone ? const SizedBox.shrink() : _GardenTile(
-                      key: tileKey,
-                      symbol: tiles[i],
-                      tileTheme: widget.tileTheme,
-                      animationLevel: widget.animationLevel,
-                      selected: active,
-                      hinted: hinted,
-                      wrong: wrong,
-                      onTap: () => _tap(i),
+                    child: IgnorePointer(
+                      ignoring: gone,
+                      child: _GardenTile(
+                        key: tileKey,
+                        symbol: tiles[i],
+                        tileTheme: widget.tileTheme,
+                        animationLevel: widget.animationLevel,
+                        selected: active,
+                        hinted: hinted,
+                        wrong: wrong,
+                        onTap: () => _tap(i),
+                      ),
                     ),
                   ),
                 ),
@@ -967,10 +970,51 @@ class _BurstPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
+    final eased = Curves.easeOutCubic.transform(progress);
+    // Three glowing shock rings expand and fade as the match resolves.
+    for (var ring = 0; ring < 3; ring++) {
+      final delay = ring * .13;
+      final t = ((progress - delay) / (1 - delay)).clamp(0.0, 1.0);
+      final radius = size.shortestSide * (.035 + t * (.23 + ring * .035));
+      final alpha = ((1 - t) * (progress < delay ? 0 : 1)).clamp(0.0, 1.0).toDouble();
+      final color = [const Color(0xFFFFD166), const Color(0xFFFF4D8D), const Color(0xFF7B61FF)][ring];
+      canvas.drawCircle(center, radius, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 7 * (1 - t) + 1.5
+        ..color = color.withValues(alpha: alpha)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
+      canvas.drawCircle(center, radius, Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..color = Colors.white.withValues(alpha: alpha * .9));
+    }
+    // Bright tapered rays make the impact feel snappy without obscuring the board.
+    final rayPaint = Paint()..strokeCap = StrokeCap.round;
+    for (var ray = 0; ray < 18; ray++) {
+      final angle = ray * pi / 9 + .12;
+      final inner = size.shortestSide * (.035 + eased * .08);
+      final outer = size.shortestSide * (.06 + eased * .22);
+      rayPaint
+        ..strokeWidth = ray.isEven ? 3.2 : 1.8
+        ..color = (ray.isEven ? const Color(0xFFFFE7A8) : Colors.white)
+            .withValues(alpha: ((1 - progress) * .95).clamp(0.0, 1.0).toDouble());
+      canvas.drawLine(
+        center + Offset(cos(angle) * inner, sin(angle) * inner),
+        center + Offset(cos(angle) * outer, sin(angle) * outer),
+        rayPaint,
+      );
+    }
     for (final p in particles) {
-      final t = Curves.easeOutCubic.transform(progress);
-      final point = center + Offset(cos(p.angle) * p.distance * t, sin(p.angle) * p.distance * t);
-      canvas.drawCircle(point, p.size * (1 - progress * .35), Paint()..color = p.color.withValues(alpha: (1 - progress).clamp(0.0, 1.0).toDouble()));
+      final point = center + Offset(cos(p.angle) * p.distance * eased, sin(p.angle) * p.distance * eased);
+      final alpha = (1 - progress).clamp(0.0, 1.0).toDouble();
+      final particlePaint = Paint()..color = p.color.withValues(alpha: alpha);
+      canvas.drawCircle(point, p.size * (1 - progress * .55), particlePaint);
+      // Each spark gets a tiny luminous tail.
+      final tail = Offset(cos(p.angle) * p.size * 1.8, sin(p.angle) * p.size * 1.8);
+      canvas.drawLine(point, point - tail, Paint()
+        ..color = p.color.withValues(alpha: alpha * .65)
+        ..strokeWidth = max(1.0, p.size * .22)
+        ..strokeCap = StrokeCap.round);
     }
   }
   @override
