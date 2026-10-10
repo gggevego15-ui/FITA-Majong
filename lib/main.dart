@@ -360,6 +360,8 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: _openMultiplayer),
           const SizedBox(height: 12),
+          _WideAction(icon: Icons.workspace_premium_rounded, title: language == 'ru' ? 'Достижения' : 'Achievements', subtitle: language == 'ru' ? 'Открывай значки за свои победы' : 'Unlock badges as you play', onTap: _showAchievements),
+          const SizedBox(height: 12),
           _WideAction(icon: Icons.map_rounded, title: _tr(language, 'levelPath'), subtitle: _tr(language, 'chapters'), onTap: _showLevelPath),
           const SizedBox(height: 12),
           _WideAction(icon: Icons.grid_view_rounded, title: _tr(language, 'tileGarden'), subtitle: _tr(language, 'exploreTiles'), onTap: () => _settings(context)),
@@ -412,6 +414,8 @@ class _HomeScreenState extends State<HomeScreen> {
       language: language,
     )));
     if (won == true) {
+      final completedDailyCount = (prefs.getInt('fita.stats.dailyWins') ?? 0) + 1;
+      await prefs.setInt('fita.stats.dailyWins', completedDailyCount);
       final now = DateTime.now().toUtc();
       final yesterday = now.subtract(const Duration(days: 1));
       final yesterdayKey =
@@ -525,6 +529,71 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             )),
           ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAchievements() async {
+    final prefs = await SharedPreferences.getInstance();
+    final wins = prefs.getInt('fita.stats.wins') ?? 0;
+    final dailyWins = prefs.getInt('fita.stats.dailyWins') ?? 0;
+    final highestLevel = prefs.getInt('fita.stats.highestLevel') ?? level;
+    final bestCombo = prefs.getInt('fita.combo.bestStreak') ?? 0;
+    final streak = prefs.getInt('fita.daily.streak') ?? 0;
+    final isRu = language == 'ru';
+    final achievements = <({String title, String description, IconData icon, int value, int goal})>[
+      (title: isRu ? 'Первый шаг' : 'First steps', description: isRu ? 'Заверши первую партию' : 'Win your first game', icon: Icons.flag_rounded, value: wins, goal: 1),
+      (title: isRu ? 'Мастер головоломок' : 'Puzzle master', description: isRu ? 'Победи в 10 партиях' : 'Win 10 games', icon: Icons.auto_awesome_rounded, value: wins, goal: 10),
+      (title: isRu ? 'Легенда сада' : 'Garden legend', description: isRu ? 'Победи в 50 партиях' : 'Win 50 games', icon: Icons.park_rounded, value: wins, goal: 50),
+      (title: isRu ? 'Путь открыт' : 'Pathfinder', description: isRu ? 'Достигни 10-го уровня' : 'Reach level 10', icon: Icons.route_rounded, value: highestLevel, goal: 10),
+      (title: isRu ? 'Вершина пути' : 'Trailblazer', description: isRu ? 'Достигни 100-го уровня' : 'Reach level 100', icon: Icons.military_tech_rounded, value: highestLevel, goal: 100),
+      (title: isRu ? 'Роса дня' : 'Daily dew', description: isRu ? 'Пройди ежедневный уровень' : 'Complete a daily level', icon: Icons.wb_twilight_rounded, value: dailyWins, goal: 1),
+      (title: isRu ? 'Ритм недели' : 'Weekly rhythm', description: isRu ? 'Играй 3 дня подряд' : 'Play daily 3 days in a row', icon: Icons.local_fire_department_rounded, value: streak, goal: 3),
+      (title: isRu ? 'Неудержимый' : 'Unstoppable', description: isRu ? 'Играй 7 дней подряд' : 'Keep a 7-day streak', icon: Icons.bolt_rounded, value: streak, goal: 7),
+      (title: isRu ? 'Комбо x5' : 'Combo x5', description: isRu ? 'Найди 5 пар подряд' : 'Match 5 pairs in a row', icon: Icons.flash_on_rounded, value: bestCombo, goal: 5),
+      (title: isRu ? 'Комбо x10' : 'Combo x10', description: isRu ? 'Найди 10 пар подряд' : 'Match 10 pairs in a row', icon: Icons.local_fire_department_rounded, value: bestCombo, goal: 10),
+    ];
+    if (!mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cream,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isRu ? '🏅 Достижения' : '🏅 Achievements', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
+              const SizedBox(height: 6),
+              Text(isRu ? 'Открыто: ${achievements.where((a) => a.value >= a.goal).length} из ${achievements.length}' : 'Unlocked: ${achievements.where((a) => a.value >= a.goal).length} of ${achievements.length}', style: const TextStyle(color: Colors.black54)),
+              const SizedBox(height: 12),
+              Flexible(child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: achievements.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 4),
+                itemBuilder: (context, index) {
+                  final a = achievements[index];
+                  final unlocked = a.value >= a.goal;
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: unlocked ? const Color(0xFFFFE4B5) : Colors.black12,
+                      child: Icon(unlocked ? Icons.check_rounded : a.icon, color: unlocked ? pine : Colors.black45),
+                    ),
+                    title: Text(a.title, style: TextStyle(color: unlocked ? pine : Colors.black54, fontWeight: FontWeight.w800)),
+                    subtitle: Text(a.description),
+                    trailing: SizedBox(
+                      width: 58,
+                      child: Text('${a.value.clamp(0, a.goal)}/${a.goal}', textAlign: TextAlign.end, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: pine)),
+                    ),
+                  );
+                },
+              )),
+            ],
+          ),
         ),
       ),
     );
@@ -1145,6 +1214,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _showWin() async {
     if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
+    final totalWins = (prefs.getInt('fita.stats.wins') ?? 0) + 1;
+    await prefs.setInt('fita.stats.wins', totalWins);
+    final oldHighestLevel = prefs.getInt('fita.stats.highestLevel') ?? 1;
+    if (widget.dailyDate == null && widget.level > oldHighestLevel) {
+      await prefs.setInt('fita.stats.highestLevel', widget.level);
+    }
     final scores = prefs.getStringList('fita.leaderboard') ?? <String>[];
     final record = '${_tr(widget.language, 'player')}|${_tr(widget.language, 'level')} ${widget.level}';
     if (!scores.contains(record)) {
