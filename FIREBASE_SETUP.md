@@ -1,106 +1,81 @@
-# Firebase setup for FITA Mahjong
+# Firebase cloud saves (no login screen)
 
-This guide configures real Firebase Authentication and Firestore. The source integration is present, but authentication and cloud sync are **not live until you supply a real Firebase project and test on devices**.
+FITA Mahjong has **no Google/Apple sign-in UI**. The app uses Firebase Authentication's **anonymous sign-in in the background** to get a private UID, so Firestore rules can securely isolate each player's save. Players do not enter an email, choose a provider, or create a visible account.
 
-## 1. Create/register the Firebase apps
+Cloud saves work only after you configure a Firebase project and enable Anonymous Authentication. Without Firebase config or network, the game remains playable and stores progress on the device.
 
-1. Open the [Firebase Console](https://console.firebase.google.com/) and create a project.
-2. Add an Android app using the exact Android application ID used by the generated native project. The current CI workflow generates `com.example.fita_mahjong` as a temporary default. Before production, choose a unique final ID and update the Flutter project-generation command plus the Firebase Android registration together. Record its Firebase **App ID** and API key.
-3. Add an iOS app using a stable reverse-DNS bundle ID, for example `com.example.fitamahjong` (choose your final ID before release). Record its Firebase **App ID** and API key.
-4. In Project settings → General, record the **Project ID** and **Project number** (used as Messaging Sender ID).
-5. The runtime config in `lib/config/firebase_runtime_config.dart` initializes Firebase with platform-specific options. This source path does not require `google-services.json` or `GoogleService-Info.plist` to initialize Firebase. However, Google Sign-In still needs the OAuth client IDs below, and iOS still needs its reversed-client-ID URL scheme in `ios/Runner/Info.plist`. Do not commit service-account credentials or private keys.
+## 1. Register the apps
 
-## 2. Set runtime values locally
+1. Open the [Firebase Console](https://console.firebase.google.com/) and create/select a project.
+2. Register Android using the exact application ID in the native project. The current CI workflow temporarily generates `com.example.fita_mahjong`; choose a unique final ID before production and use it consistently.
+3. Register iOS using your final bundle ID (reverse-DNS format).
+4. In Project settings → General, copy Project ID and Project number (Messaging Sender ID). Copy each platform's Firebase App ID and API key.
+5. The app initializes Firebase with Dart runtime options, so `google-services.json` and `GoogleService-Info.plist` are not required by this initialization path. No Google OAuth clients, SHA fingerprints, iOS Google URL scheme, Apple Developer capability, or Apple key are required for anonymous cloud saves.
 
-1. Copy `firebase.local.example.json` to `firebase.local.json`.
-2. Replace all `replace-...` values with the corresponding values from Firebase / Google Cloud. Keep `firebase.local.json` out of Git; it is ignored by `.gitignore`.
-3. Install Flutter, then run:
+## 2. Configure local runtime values
 
-```sh
+Copy `firebase.local.example.json` to `firebase.local.json`, replace every `replace-...` value with values from Firebase Console, and keep the local file untracked (it is ignored by Git).
+
+~~~sh
 flutter pub get
 flutter run --dart-define-from-file=firebase.local.json
-```
+~~~
 
-For a release build, use the same define file with `flutter build apk --release --dart-define-from-file=firebase.local.json`. Never add a service-account private key, Apple `.p8` private key, or other server secret to this file or the mobile app. Firebase client API keys and OAuth client IDs identify the app; they are not substitutes for security rules.
+For Android release:
 
-## 3. Enable Firebase Authentication
+~~~sh
+flutter build apk --release --dart-define-from-file=firebase.local.json
+~~~
 
-In Firebase Console → Authentication → Sign-in method, enable **Anonymous**, **Google**, and **Apple**.
+Never put service-account private keys or server credentials in the app or this file. Firebase client API keys are app identifiers, not database security controls.
 
-### Google OAuth
+## 3. Enable anonymous Firebase Authentication
 
-1. Configure the Google provider in Firebase Authentication.
-2. In Google Cloud Console → APIs & Services → Credentials, check the OAuth client IDs created for the Firebase project.
-3. Put the **Web application OAuth client ID** in `FITA_GOOGLE_SERVER_CLIENT_ID`. It must end with `.apps.googleusercontent.com`; it is a client ID, not a client secret. The code now stops with a configuration message if this value is missing.
-4. Put the iOS OAuth client ID in `FITA_GOOGLE_IOS_CLIENT_ID` and confirm its bundle ID matches the registered Firebase iOS app. The code now stops with a configuration message if this value is missing on iOS.
-5. Android: create/check an Android OAuth client for the exact package/application ID and add the SHA-1 and SHA-256 fingerprints for every signing certificate used (debug, CI/release, and Play App Signing where applicable). The current CI-generated package ID is `com.example.fita_mahjong`; use a final unique ID before release and register that exact ID. Because this repo passes `serverClientId` in Dart, a `google-services.json` file is not required solely for Google Sign-In; the Web client ID must still be valid. See [Google Sign-In Android setup](https://github.com/flutter/packages/blob/main/packages/google_sign_in/google_sign_in_android/README.md).
-6. iOS: add the reversed iOS client ID as a URL scheme in `ios/Runner/Info.plist`. Even when client IDs are passed from Dart, the URL scheme callback is still required. The plist section must be added inside the existing top-level `dict`; do not create a second `CFBundleURLTypes` key if one already exists:
+In Firebase Console → Authentication → Sign-in method, enable **Anonymous**. Google and Apple providers can stay disabled.
 
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-  <dict>
-    <key>CFBundleTypeRole</key>
-    <string>Editor</string>
-    <key>CFBundleURLSchemes</key>
-    <array>
-      <string>REVERSED_IOS_CLIENT_ID_FROM_GOOGLE_CONSOLE</string>
-    </array>
-  </dict>
-</array>
-```
+When the player taps Play, the app silently calls `signInAnonymously()`. Firebase persists that anonymous user's session on the device. Firestore writes use this Firebase UID.
 
-Replace the placeholder with the **REVERSED_CLIENT_ID** value associated with the iOS OAuth client / Firebase iOS app (often shaped like `com.googleusercontent.apps....`). Preserve any existing URL schemes. Test on a physical iOS device.
+If Anonymous is disabled or Firebase values are incorrect, the app falls back to local-only saves; cloud sync will not be available until configuration is fixed.
 
-### Apple sign-in
+## 4. Create Firestore and deploy rules
 
-1. Requires an Apple Developer team and an app identifier that has **Sign in with Apple** enabled.
-2. In Certificates, Identifiers & Profiles, enable the Sign in with Apple capability for the App ID. Enable the same capability in the Xcode Runner target (Signing & Capabilities).
-3. In Firebase Console → Authentication → Apple provider, configure the Apple Team ID, Key ID, Services ID and private key as requested by Firebase. Create/download the Apple key in the Apple Developer portal; store the `.p8` securely and enter it only in the protected Firebase Console field. Never commit it.
-4. Configure the required return URL / domain in the Apple Services ID if Firebase Console's setup flow requests it.
-5. Test on a real iOS device with the final bundle ID and signing team. Apple may provide name/email only on first consent.
+1. Create a Cloud Firestore database in Firebase Console.
+2. From the repository root, install Firebase CLI and sign in if needed.
+3. Select your project and deploy the repository rules:
 
-The Apple button is shown only on iOS in the current UI. Apple provider setup cannot be completed solely in source code.
-
-## 4. Create Firestore and deploy secure rules
-
-1. Create a Cloud Firestore database in the Firebase Console.
-2. Review `firestore.rules`, then deploy it using Firebase CLI after installing and logging into the CLI:
-
-```sh
+~~~sh
 firebase use YOUR_FIREBASE_PROJECT_ID
 firebase deploy --only firestore:rules
-```
+~~~
 
-Do not deploy public rules such as `allow read, write: if true`. The app stores a document at `users/{Firebase UID}`; rules must require an authenticated request whose UID matches the document ID.
+The rules restrict each user to their own `users/{uid}` document and validate saved fields. **Do not use public rules** such as `allow read, write: if true`.
 
-## 5. Test checklist
+## 5. Verify cloud saves
 
-- [ ] App launches without a Firebase config file and guest mode still works locally.
-- [ ] With `firebase.local.json`, anonymous guest sign-in appears in Firebase Authentication.
-- [ ] Google sign-in works on Android with the correct application ID, Web client ID, and signing SHA fingerprints.
-- [ ] Google sign-in works on iOS with the iOS client ID, Web client ID, and matching reversed-client-ID URL scheme.
-- [ ] Apple sign-in works on a physical iOS device.
-- [ ] A signed-in user's `users/{uid}` document is created/updated.
-- [ ] A different signed-in UID cannot read or modify that document.
-- [ ] Progress survives app restart and appears after sign-in on a second device.
-- [ ] Offline play continues when Firestore is unavailable, then a later save/load syncs again.
+- [ ] Run with a real `firebase.local.json` file on Android.
+- [ ] Tap Play; Firebase Console → Authentication → Users should show an anonymous user.
+- [ ] Finish a level or change a setting; verify `users/{uid}` is created/updated in Firestore.
+- [ ] Restart the app and verify progress/preferences restore.
+- [ ] Repeat on iOS with its registered bundle ID and iOS Firebase options.
+- [ ] Test with networking disabled: local play should continue.
 
-## Current limitations
+## Important limitation of no-login cloud saves
 
-- No Firebase project or OAuth client credentials have been supplied to this repository, so provider flows and cloud sync are not yet verified. The Google sign-in code now checks for required client IDs and a non-empty ID token, but that validation is not a substitute for device testing.
-- The local-only guest ID cannot sync to another device until the guest signs into Firebase. If the player chooses an already-existing Google/Apple account instead of linking the anonymous account, cloud progress migration must be handled explicitly.
-- No background retry queue, real-time multi-device conflict resolution, account deletion flow, or automated Firebase Emulator tests are included yet.
-- The Android GitHub Actions workflow passes optional Firebase runtime values into the APK build. To enable this, open **Repository → Settings → Secrets and variables → Actions → Variables** and add the exact names below as repository variables (these are client-side app identifiers, not private keys):
+An anonymous Firebase UID is not a recoverable identity. It generally stays with that app installation, but if the user clears app data, reinstalls, or changes devices, the anonymous account/save cannot automatically be recovered or linked across devices. Cross-device and recovery support would require an account-linking/recovery feature later. The current implementation has no background retry queue or conflict resolution. No real Firebase project was supplied here, so live cloud writes and device builds have not yet been verified.
+
+## GitHub Actions variables
+
+To pass Firebase config into the Android APK build, set these repository variables at Settings → Secrets and variables → Actions → Variables:
 
 - `FITA_FIREBASE_PROJECT_ID`
 - `FITA_FIREBASE_MESSAGING_SENDER_ID`
 - `FITA_FIREBASE_ANDROID_API_KEY`
 - `FITA_FIREBASE_ANDROID_APP_ID`
+
+The workflow also forwards iOS app values for consistency, but it only builds Android:
+
 - `FITA_FIREBASE_IOS_API_KEY`
 - `FITA_FIREBASE_IOS_APP_ID`
 - `FITA_IOS_BUNDLE_ID`
-- `FITA_GOOGLE_SERVER_CLIENT_ID`
-- `FITA_GOOGLE_IOS_CLIENT_ID`
 
-The Android build only consumes the Android values plus the shared project/sender/Google server client values. iOS values are prepared for local iOS runs; this workflow does not build an IPA. If the variables are absent, the APK can still compile in local-guest-only mode, so a green CI build alone does not prove OAuth works.
+A green APK build does not prove Firebase authentication or Firestore access works. Test with your real project and inspect Firebase Console.
