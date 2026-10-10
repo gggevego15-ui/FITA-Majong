@@ -436,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _WideAction(icon: Icons.map_rounded, title: _tr(language, 'levelPath'), subtitle: _tr(language, 'chapters'), onTap: _showLevelPath),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.grid_view_rounded, title: _tr(language, 'tileGarden'), subtitle: _tr(language, 'exploreTiles'), onTap: () => _settings(context)),
+          _WideAction(icon: Icons.shopping_bag_rounded, title: language == 'ru' ? 'Магазин тем' : 'Theme shop', subtitle: language == 'ru' ? 'Открывай фоны и стили за XP' : 'Unlock backgrounds and tile styles with XP', onTap: _showThemeShop),
           const SizedBox(height: 18),
           Center(child: Text(_tr(language, 'breathe'), style: TextStyle(color: pine.withValues(alpha: .7), fontStyle: FontStyle.italic))),
         ]))),
@@ -727,6 +727,141 @@ class _HomeScreenState extends State<HomeScreen> {
     ));
   }
 
+  Future<void> _showThemeShop() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ownedBackgrounds = prefs.getStringList('fita.shop.owned.background') ?? <String>['0'];
+    final ownedTiles = prefs.getStringList('fita.shop.owned.tiles') ?? <String>['0'];
+    final previousBackground = prefs.getInt('fita.theme.background') ?? backgroundTheme;
+    final previousTiles = prefs.getInt('fita.theme.tiles') ?? tileTheme;
+    if (!ownedBackgrounds.contains('$previousBackground')) ownedBackgrounds.add('$previousBackground');
+    if (!ownedTiles.contains('$previousTiles')) ownedTiles.add('$previousTiles');
+    await prefs.setStringList('fita.shop.owned.background', ownedBackgrounds);
+    await prefs.setStringList('fita.shop.owned.tiles', ownedTiles);
+    if (!mounted) return;
+    setState(() => playerXp = prefs.getInt('fita.rewards.xp') ?? playerXp);
+    const costs = [0, 100, 250, 500];
+    const backgroundNames = ['Classic Garden', 'Rose Sunset', 'Crystal Lagoon', 'Midnight Aurora'];
+    const tileNames = ['Garden', 'Rainbow', 'Crystal', 'Starlight'];
+    const backgroundNamesRu = ['Классический сад', 'Розовый закат', 'Хрустальная лагуна', 'Полярное сияние'];
+    const tileNamesRu = ['Сад', 'Радуга', 'Кристалл', 'Звёздный свет'];
+    const backgroundGradients = [
+      [Color(0xFFE8F0DE), Color(0xFFFFF6E7)],
+      [Color(0xFFFFD6E8), Color(0xFFFFE7A8)],
+      [Color(0xFFB8F2E6), Color(0xFFCDB4DB)],
+      [Color(0xFF171B45), Color(0xFF302B63)],
+    ];
+    const tileColors = [Color(0xFFFFFDF6), Color(0xFFFFD6E8), Color(0xFFB8F2E6), Color(0xFF22254B)];
+    const tileSymbols = ['🌿', '🌈', '💎', '✨'];
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cream,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(builder: (sheetContext, setSheet) {
+        var xp = prefs.getInt('fita.rewards.xp') ?? playerXp;
+        final backgrounds = prefs.getStringList('fita.shop.owned.background') ?? <String>['0'];
+        final tiles = prefs.getStringList('fita.shop.owned.tiles') ?? <String>['0'];
+        Future<void> buy(String type, int index) async {
+          final owned = type == 'background' ? backgrounds : tiles;
+          if (owned.contains('$index')) {
+            if (type == 'background') {
+              await prefs.setInt('fita.theme.background', index);
+              if (mounted) setState(() => backgroundTheme = index);
+            } else {
+              await prefs.setInt('fita.theme.tiles', index);
+              if (mounted) setState(() => tileTheme = index);
+            }
+            setSheet(() {});
+            return;
+          }
+          final price = costs[index];
+          if (xp < price) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(language == 'ru' ? 'Не хватает XP: нужно ещё ${price - xp}' : 'Not enough XP: ${price - xp} more needed')));
+            return;
+          }
+          xp -= price;
+          await prefs.setInt('fita.rewards.xp', xp);
+          owned.add('$index');
+          await prefs.setStringList(type == 'background' ? 'fita.shop.owned.background' : 'fita.shop.owned.tiles', owned);
+          if (type == 'background') {
+            await prefs.setInt('fita.theme.background', index);
+            if (mounted) setState(() { backgroundTheme = index; playerXp = xp; });
+          } else {
+            await prefs.setInt('fita.theme.tiles', index);
+            if (mounted) setState(() { tileTheme = index; playerXp = xp; });
+          }
+          setSheet(() {});
+        }
+        Widget themeCard({required String type, required int index}) {
+          final owned = (type == 'background' ? backgrounds : tiles).contains('$index');
+          final active = type == 'background' ? backgroundTheme == index : tileTheme == index;
+          final name = type == 'background'
+              ? (language == 'ru' ? backgroundNamesRu[index] : backgroundNames[index])
+              : (language == 'ru' ? tileNamesRu[index] : tileNames[index]);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: active ? pine : const Color(0xFFE4E0D6), width: active ? 2 : 1),
+            ),
+            child: Row(children: [
+              Container(
+                width: 52, height: 48,
+                decoration: BoxDecoration(
+                  gradient: type == 'background' ? LinearGradient(colors: backgroundGradients[index]) : null,
+                  color: type == 'tiles' ? tileColors[index] : null,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(child: Text(type == 'tiles' ? tileSymbols[index] : ['🌱','🌅','💠','🌌'][index], style: const TextStyle(fontSize: 24))),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(name, style: const TextStyle(color: pine, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 3),
+                Text(owned ? (active ? (language == 'ru' ? 'Выбрано' : 'Equipped') : (language == 'ru' ? 'Открыто' : 'Unlocked')) : '${costs[index]} XP', style: TextStyle(color: owned ? const Color(0xFF47765D) : const Color(0xFFB47737), fontSize: 12, fontWeight: FontWeight.w700)),
+              ])),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () => buy(type, index),
+                style: FilledButton.styleFrom(backgroundColor: owned ? const Color(0xFFE5EDDF) : pine, foregroundColor: owned ? pine : Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12)),
+                child: Text(owned ? (active ? (language == 'ru' ? 'Выбрано' : 'Using') : (language == 'ru' ? 'Надеть' : 'Equip')) : (language == 'ru' ? 'Открыть' : 'Unlock')),
+              ),
+            ]),
+          );
+        }
+        return SafeArea(child: SizedBox(
+          height: MediaQuery.of(sheetContext).size.height * .82,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.shopping_bag_rounded, color: Color(0xFFD58D59), size: 30),
+                const SizedBox(width: 8),
+                Expanded(child: Text(language == 'ru' ? 'Магазин тем' : 'Theme shop', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
+                Text('${prefs.getInt('fita.rewards.xp') ?? playerXp} XP', style: const TextStyle(color: pine, fontWeight: FontWeight.w900)),
+              ]),
+              const SizedBox(height: 5),
+              Text(language == 'ru' ? 'Трать XP за достижения, чтобы открыть новые образы.' : 'Spend achievement XP to unlock new looks.', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              const SizedBox(height: 12),
+              Expanded(child: ListView(children: [
+                Text(language == 'ru' ? 'ФОНЫ' : 'BACKGROUNDS', style: const TextStyle(color: pine, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                ...List.generate(4, (i) => themeCard(type: 'background', index: i)),
+                const SizedBox(height: 8),
+                Text(language == 'ru' ? 'СТИЛИ ФИШЕК' : 'TILE STYLES', style: const TextStyle(color: pine, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                ...List.generate(4, (i) => themeCard(type: 'tiles', index: i)),
+              ])),
+            ]),
+          ),
+        ));
+      }),
+    );
+    await _refreshPlayerXp();
+  }
+
   void _settings(BuildContext context) => showModalBottomSheet(context: context, backgroundColor: cream, showDragHandle: true, builder: (context) => StatefulBuilder(builder: (context, setSheet) => Padding(
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 30),
     child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -759,17 +894,23 @@ class _HomeScreenState extends State<HomeScreen> {
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'haptics')), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       SwitchListTile(value: comboEffects, onChanged: (v) async { setState(() => comboEffects = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setBool('fita.combo.effects', v); }, title: Text(_tr(language, 'comboEffects')), subtitle: Text(_tr(language, 'comboEffectsNote')), secondary: const Icon(Icons.bolt_rounded, color: pine)),
       const Divider(height: 20),
+      SizedBox(width: double.infinity, child: OutlinedButton.icon(
+        onPressed: () { Navigator.of(context).pop(); _showThemeShop(); },
+        icon: const Icon(Icons.shopping_bag_rounded),
+        label: Text(language == 'ru' ? 'Открыть магазин тем' : 'Open theme shop'),
+      )),
+      const SizedBox(height: 10),
       Text(_tr(language, 'backgroundTheme'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
       Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
-        onTap: () async { setState(() => backgroundTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.background', i); },
+        onTap: () async { final p = await SharedPreferences.getInstance(); final owned = p.getStringList('fita.shop.owned.background') ?? <String>['0']; if (!owned.contains('$i')) { _message(context, language == 'ru' ? 'Тема закрыта — открой её в магазине за XP' : 'Theme locked — unlock it in the XP shop'); return; } setState(() => backgroundTheme = i); setSheet(() {}); await p.setInt('fita.theme.background', i); },
         child: Container(width: 48, height: 42, decoration: BoxDecoration(gradient: LinearGradient(colors: [[const Color(0xFFE8F0DE), const Color(0xFFFFF6E7)], [const Color(0xFFFFD6E8), const Color(0xFFFFE7A8)], [const Color(0xFFB8F2E6), const Color(0xFFCDB4DB)], [const Color(0xFF171B45), const Color(0xFF302B63)]][i]), borderRadius: BorderRadius.circular(13), border: Border.all(color: backgroundTheme == i ? pine : Colors.white, width: backgroundTheme == i ? 3 : 1))),
       ))),
       const SizedBox(height: 14),
       Text(_tr(language, 'tileStyle'), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
       const SizedBox(height: 8),
       Wrap(spacing: 10, children: List.generate(4, (i) => GestureDetector(
-        onTap: () async { setState(() => tileTheme = i); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.theme.tiles', i); },
+        onTap: () async { final p = await SharedPreferences.getInstance(); final owned = p.getStringList('fita.shop.owned.tiles') ?? <String>['0']; if (!owned.contains('$i')) { _message(context, language == 'ru' ? 'Стиль закрыт — открой его в магазине за XP' : 'Style locked — unlock it in the XP shop'); return; } setState(() => tileTheme = i); setSheet(() {}); await p.setInt('fita.theme.tiles', i); },
         child: Container(width: 48, height: 42, decoration: BoxDecoration(color: [[const Color(0xFFFFFDF6)], [const Color(0xFFFFD6E8)], [const Color(0xFFB8F2E6)], [const Color(0xFF22254B)]][i][0], borderRadius: BorderRadius.circular(13), border: Border.all(color: tileTheme == i ? pine : Colors.white, width: tileTheme == i ? 3 : 1)), child: Center(child: Text(['🌿','🌈','💎','✨'][i]))),
       ))),
       const SizedBox(height: 12),
