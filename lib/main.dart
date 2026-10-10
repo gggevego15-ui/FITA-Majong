@@ -600,11 +600,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 12.5, (constraints.maxHeight - 8) / 8.6).clamp(22.0, 48.0).toDouble();
+          final tileWidth = min((constraints.maxWidth - 8) / 14.5, (constraints.maxHeight - 8) / 11.4).clamp(22.0, 48.0).toDouble();
           final tileHeight = tileWidth * 1.08;
           return Center(child: SizedBox(
-            width: tileWidth * 12.5,
-            height: tileHeight * 8.35,
+            width: tileWidth * 14.5,
+            height: tileHeight * 10.35,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
               final spot = spots[i];
               final gone = removed.contains(i);
@@ -616,7 +616,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 duration: Duration(milliseconds: widget.animationLevel == 0 ? 90 : widget.animationLevel == 1 ? 180 : 300),
                 curve: Curves.easeOutBack,
                 left: spot.x * tileWidth * .94 + spot.layer * tileWidth * .10,
-                top: spot.y * tileHeight * .94 - spot.layer * tileHeight * .18,
+                top: (spot.y + 1) * tileHeight * .94 - spot.layer * tileHeight * .18,
                 width: tileWidth,
                 height: tileHeight,
                 child: AnimatedScale(
