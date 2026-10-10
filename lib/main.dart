@@ -625,7 +625,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           : 0.0;
       final sample = ((body + noise + crackle) * envelope * 25000)
           .round()
-          .clamp(-32768, 32767);
+          .clamp(-32768, 32767)
+          .toInt();
       header.setInt16(44 + i * 2, sample, Endian.little);
     }
     return bytes;
