@@ -105,7 +105,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         onPressed: _busy ? null : _continueAsGuest,
                         child: Text(_busy ? 'Please wait…' : 'Play', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       )),
-                    const SizedBox(height: 12),
                     const SizedBox(height: 10),
                     Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withOpacity(.7))),
                   ],
