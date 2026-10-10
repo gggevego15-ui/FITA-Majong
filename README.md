@@ -23,8 +23,7 @@ The integration code is committed, but this repository does **not** contain cred
 1. Create a Firebase project and register the Android app using the final Android application ID.
 2. Register the iOS app using the final bundle identifier.
 3. Enable **Authentication → Sign-in method → Anonymous, Google, and Apple** as appropriate.
-4. Add the Firebase Android config file `android/app/google-services.json` and iOS config file `ios/Runner/GoogleService-Info.plist`.
-5. Follow the current Firebase Flutter setup instructions for the Google Services Gradle plugin, iOS URL schemes, and platform-specific OAuth settings. For Google, configure the required SHA fingerprints and OAuth client IDs. For Apple, enable Sign in with Apple for the Apple Developer App ID and configure the Firebase Apple provider.
+4. Follow [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md) for Google OAuth IDs, Android SHA-1/SHA-256 fingerprints, and the required reversed-client-ID URL scheme in `ios/Runner/Info.plist`. This repository initializes Firebase with Dart runtime options, so native Firebase config files are not required for initialization; the iOS Google callback URL scheme is still required.
 6. Create the Firestore database and deploy `firestore.rules`. Do not use open/public Firestore rules.
 7. Review Apple sign-in entitlement and capability settings in the iOS project before testing on a real device.
 
