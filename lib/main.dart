@@ -760,6 +760,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     const tileColors = [Color(0xFFFFFDF6), Color(0xFFFFD6E8), Color(0xFFB8F2E6), Color(0xFF22254B)];
     const tileSymbols = ['🌿', '🌈', '💎', '✨'];
+    var previewBackground = backgroundTheme.clamp(0, 3);
+    var previewTiles = tileTheme.clamp(0, 3);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: cream,
@@ -806,13 +808,17 @@ class _HomeScreenState extends State<HomeScreen> {
           final name = type == 'background'
               ? (language == 'ru' ? backgroundNamesRu[index] : backgroundNames[index])
               : (language == 'ru' ? tileNamesRu[index] : tileNames[index]);
-          return Container(
+          final previewed = type == 'background' ? previewBackground == index : previewTiles == index;
+          return InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setSheet(() { if (type == 'background') { previewBackground = index; } else { previewTiles = index; } }),
+            child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: active ? pine : const Color(0xFFE4E0D6), width: active ? 2 : 1),
+              border: Border.all(color: previewed ? const Color(0xFFD58D59) : (active ? pine : const Color(0xFFE4E0D6)), width: previewed ? 2.5 : (active ? 2 : 1)),
             ),
             child: Row(children: [
               Container(
@@ -837,8 +843,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(owned ? (active ? (language == 'ru' ? 'Выбрано' : 'Using') : (language == 'ru' ? 'Надеть' : 'Equip')) : (language == 'ru' ? 'Открыть' : 'Unlock')),
               ),
             ]),
-          );
+          ));
         }
+        Widget previewPanel() => Container(margin: const EdgeInsets.symmetric(vertical: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(gradient: LinearGradient(colors: backgroundGradients[previewBackground]), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(language == 'ru' ? 'ПРЕДПРОСМОТР · БЕЗ ПОКУПКИ' : 'PREVIEW · NO PURCHASE', style: const TextStyle(color: pine, fontWeight: FontWeight.w900, fontSize: 11)), const SizedBox(height: 8), Row(children: [for (final symbol in (previewTiles == 0 ? ['🌿', '🌸', '🦋'] : previewTiles == 1 ? ['🌈', '🪷', '🌺'] : previewTiles == 2 ? ['💎', '💎', '💎'] : ['✨', '✨', '✨'])) Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 3), height: 46, decoration: BoxDecoration(color: tileColors[previewTiles], borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white)), child: Center(child: Text(symbol, style: TextStyle(fontSize: 24, color: previewTiles == 3 ? Colors.white : pine))))]), const SizedBox(height: 6), Text((language == 'ru' ? backgroundNamesRu[previewBackground] : backgroundNames[previewBackground]) + ' · ' + (language == 'ru' ? tileNamesRu[previewTiles] : tileNames[previewTiles]), style: const TextStyle(color: pine, fontWeight: FontWeight.w700, fontSize: 11))]));
         return SafeArea(child: SizedBox(
           height: MediaQuery.of(sheetContext).size.height * .82,
           child: Padding(
@@ -851,8 +858,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text('${prefs.getInt('fita.rewards.xp') ?? playerXp} XP', style: const TextStyle(color: pine, fontWeight: FontWeight.w900)),
               ]),
               const SizedBox(height: 5),
-              Text(language == 'ru' ? 'Трать XP за достижения, чтобы открыть новые образы.' : 'Spend achievement XP to unlock new looks.', style: const TextStyle(color: Colors.black54, fontSize: 12)),
-              const SizedBox(height: 12),
+              Text(language == 'ru' ? 'Нажми на карточку, чтобы посмотреть образ до покупки.' : 'Tap a card to preview before buying.', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              previewPanel(),
+              const SizedBox(height: 2),
               Expanded(child: ListView(children: [
                 Text(language == 'ru' ? 'ФОНЫ' : 'BACKGROUNDS', style: const TextStyle(color: pine, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
