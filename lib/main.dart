@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -255,6 +256,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int? hintB;
   late final AnimationController _winController;
   late final Stopwatch _clock;
+  Timer? _ticker;
   String get elapsed {
     final s = _clock.elapsed.inSeconds;
     return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
@@ -265,6 +267,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
     _clock = Stopwatch()..start();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && !finished) setState(() {});
+    });
     _newBoard();
   }
 
@@ -333,7 +338,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (pairs == 0) {
         finished = true;
         _clock.stop();
-        await _winController.forward(from: 0);
+        _winController.forward(from: 0);
         if (mounted) _showWin();
       }
     } else {
@@ -421,6 +426,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _ticker?.cancel();
     _winController.dispose();
     _clock.stop();
     super.dispose();
