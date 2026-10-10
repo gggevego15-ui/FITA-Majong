@@ -199,13 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 18),
               SizedBox(width: double.infinity, height: 48, child: FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: cream, foregroundColor: pine, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                onPressed: () async {
-                  final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(level: level, sound: sound, haptics: haptics, backgroundTheme: backgroundTheme, tileTheme: tileTheme, animationLevel: animationLevel)));
-                  if (won == true && mounted) {
-                    setState(() => level = level >= 10000 ? 10000 : level + 1);
-                    await _saveProgress();
-                  }
-                },
+                onPressed: () => _launchLevel(level),
                 child: Text('Continue  ·  Level $level', style: const TextStyle(fontWeight: FontWeight.w900)),
               )),
             ]),
@@ -221,6 +215,8 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
           _WideAction(icon: Icons.people_alt_rounded, title: 'Play with a friend', subtitle: 'Race through the same layout', onTap: () => _message(context, 'Online multiplayer is planned; no live matches yet.')),
           const SizedBox(height: 12),
+          _WideAction(icon: Icons.map_rounded, title: 'Level path', subtitle: '10 chapters · 10,000 puzzles', onTap: _showLevelPath),
+          const SizedBox(height: 12),
           _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _settings(context)),
           const SizedBox(height: 18),
           Center(child: Text('Breathe in. Match two. Breathe out.', style: TextStyle(color: pine.withOpacity(.7), fontStyle: FontStyle.italic))),
@@ -228,6 +224,67 @@ class _HomeScreenState extends State<HomeScreen> {
       ])),
     ]),
   );
+
+  Future<void> _launchLevel(int selectedLevel) async {
+    final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(
+      level: selectedLevel,
+      sound: sound,
+      haptics: haptics,
+      backgroundTheme: backgroundTheme,
+      tileTheme: tileTheme,
+      animationLevel: animationLevel,
+    )));
+    if (won == true && mounted && selectedLevel == level) {
+      setState(() => level = level >= 10000 ? 10000 : level + 1);
+      await _saveProgress();
+    }
+  }
+
+  void _showLevelPath() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cream,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(sheetContext).size.height * .72,
+          child: Column(children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(22, 8, 22, 12),
+              child: Align(alignment: Alignment.centerLeft, child: Text('🌿 Level path', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
+            ),
+            Expanded(child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: 10,
+              itemBuilder: (ctx, index) {
+                final chapter = index + 1;
+                final firstLevel = index * 1000 + 1;
+                final unlocked = firstLevel <= level;
+                final completed = level > (index + 1) * 1000;
+                return Card(
+                  color: unlocked ? Colors.white : const Color(0xFFE9E5DC),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: completed ? const Color(0xFFB8F2E6) : unlocked ? const Color(0xFFFFE4B5) : Colors.black12,
+                      child: Icon(completed ? Icons.check_rounded : unlocked ? Icons.flag_rounded : Icons.lock_rounded, color: pine),
+                    ),
+                    title: Text('Chapter $chapter', style: const TextStyle(fontWeight: FontWeight.w800, color: pine)),
+                    subtitle: Text('Levels $firstLevel–${(index + 1) * 1000}'),
+                    trailing: unlocked ? const Icon(Icons.chevron_right_rounded, color: pine) : null,
+                    onTap: unlocked ? () {
+                      Navigator.of(sheetContext).pop();
+                      _launchLevel(firstLevel);
+                    } : null,
+                  ),
+                );
+              },
+            )),
+          ]),
+        ),
+      ),
+    );
+  }
 
   Future<void> _showLeaderboard() async {
     final prefs = await SharedPreferences.getInstance();
