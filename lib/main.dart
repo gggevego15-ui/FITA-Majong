@@ -272,6 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int animationLevel = 2;
   bool dailyCompleted = false;
   int dailyStreak = 0;
+  int playerXp = 0;
   String language = 'en';
 
   @override
@@ -298,7 +299,25 @@ class _HomeScreenState extends State<HomeScreen> {
       language = prefs.getString('fita.language') ?? widget.initialLanguage;
       dailyCompleted = prefs.getString('fita.daily.completed') == _todayKey();
       dailyStreak = prefs.getInt('fita.daily.streak') ?? 0;
+      playerXp = prefs.getInt('fita.rewards.xp') ?? 0;
     });
+  }
+
+  int get _playerRankLevel => playerXp ~/ 100 + 1;
+
+  String _playerRank(int rankLevel) {
+    if (rankLevel >= 50) return language == 'ru' ? 'Нефритовый мастер' : 'Jade Master';
+    if (rankLevel >= 30) return language == 'ru' ? 'Хранитель сада' : 'Garden Guardian';
+    if (rankLevel >= 20) return language == 'ru' ? 'Золотой феникс' : 'Golden Phoenix';
+    if (rankLevel >= 10) return language == 'ru' ? 'Серебряный лист' : 'Silver Leaf';
+    if (rankLevel >= 5) return language == 'ru' ? 'Путник леса' : 'Forest Wanderer';
+    return language == 'ru' ? 'Росток' : 'Sprout';
+  }
+
+  Future<void> _refreshPlayerXp() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => playerXp = prefs.getInt('fita.rewards.xp') ?? 0);
   }
 
   Future<void> _saveProgress() async {
