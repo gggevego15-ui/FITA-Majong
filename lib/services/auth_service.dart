@@ -73,6 +73,18 @@ class AuthService {
 
   Future<UserCredential> signInWithGoogle() async {
     _requireFirebase();
+    if (FirebaseRuntimeConfig.googleServerClientId.isEmpty) {
+      throw StateError(
+        'Google sign-in needs FITA_GOOGLE_SERVER_CLIENT_ID: use the Web '
+        'application OAuth client ID from Google Cloud Console (client ID only).',
+      );
+    }
+    if (Platform.isIOS && FirebaseRuntimeConfig.googleIosClientId.isEmpty) {
+      throw StateError(
+        'Google sign-in on iOS needs FITA_GOOGLE_IOS_CLIENT_ID and the '
+        'matching reversed client-ID URL scheme in ios/Runner/Info.plist.',
+      );
+    }
     final google = GoogleSignIn(
       clientId: !Platform.isIOS ||
               FirebaseRuntimeConfig.googleIosClientId.isEmpty
@@ -87,6 +99,12 @@ class AuthService {
       throw const AuthFlowCancelled();
     }
     final tokens = await account.authentication;
+    if (tokens.idToken == null || tokens.idToken!.isEmpty) {
+      throw StateError(
+        'Google did not return an ID token. Check the Web OAuth client ID, '
+        'Android signing fingerprints, package name, and iOS URL scheme.',
+      );
+    }
     final credential = GoogleAuthProvider.credential(
       accessToken: tokens.accessToken,
       idToken: tokens.idToken,
