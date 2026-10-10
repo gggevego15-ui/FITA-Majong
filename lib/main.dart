@@ -726,6 +726,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late final AnimationController _boardFitController;
   Animation<Matrix4>? _boardFitAnimation;
   Timer? _ticker;
+  StreamSubscription<Map<String, dynamic>?>? _roomSubscription;
+  int opponentPairs = 72;
+  bool opponentWon = false;
+  bool opponentJoined = false;
   String get elapsed {
     final s = _clock.elapsed.inSeconds;
     return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
@@ -755,8 +759,37 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (mounted && !finished) setState(() {});
     });
     _newBoard();
+    _listenToRoom();
   }
 
+  void _listenToRoom() {
+    if (widget.roomCode == null || widget.playerUid == null) return;
+    _roomSubscription = MultiplayerService.instance.watchRoom(widget.roomCode!).listen((data) {
+      if (data == null || !mounted) return;
+      final isHost = data['hostUid'] == widget.playerUid;
+      setState(() {
+        opponentJoined = data['guestUid'] != null;
+        opponentPairs = ((isHost ? data['guestPairs'] : data['hostPairs']) as num?)?.toInt() ?? 72;
+        opponentWon = (isHost ? data['guestWon'] : data['hostWon']) == true;
+      });
+    }, onError: (_) {});
+  }
+
+  Future<void> _syncRoomProgress() async {
+    final code = widget.roomCode;
+    final uid = widget.playerUid;
+    if (code == null || uid == null) return;
+    try {
+      await MultiplayerService.instance.updateProgress(
+        code: code,
+        uid: uid,
+        pairsLeft: pairs,
+        won: finished,
+      );
+    } catch (_) {
+      // A temporary connection issue must not interrupt the local match.
+    }
+  }
 
   Future<void> _recordComboStreak() async {
     if (matchStreak <= bestComboStreak) return;
@@ -995,6 +1028,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         selected = null;
         pairs--;
       });
+      unawaited(_syncRoomProgress());
       Future.delayed(const Duration(milliseconds: 420), () { if (mounted) setState(() => shaking = false); });
       if (pairs == 0) {
         finished = true;
@@ -1131,6 +1165,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _ticker?.cancel();
     _comboPopupTimer?.cancel();
     _flightEntry?.remove();
+    _roomSubscription?.cancel();
     _flightController.dispose();
     _winController.dispose();
     _boardFitController.dispose();
@@ -1144,7 +1179,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     appBar: AppBar(
       backgroundColor: cream,
       foregroundColor: pine,
-      title: Text('FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      title: Text(widget.dailyDate != null ? 'FITA Majong · Daily' : 'FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
       centerTitle: true,
       actions: [
         IconButton(tooltip: _tr(widget.language, 'undo'), onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
@@ -1153,6 +1188,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ),
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
+      if (widget.roomCode != null) Positioned(top: 6, left: 12, right: 12, child: Material(color: cream.withValues(alpha: .96), elevation: 2, borderRadius: BorderRadius.circular(14), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Text('ROOM ${widget.roomCode}  ·  ${opponentJoined ? 'LIVE RACE' : 'WAITING FOR FRIEND'}', style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .8)), const SizedBox(height: 3), Text('You: ${72 - pairs}/72 pairs  ·  Friend: ${72 - opponentPairs}/72${opponentWon ? '  ·  Friend finished!' : ''}', style: const TextStyle(color: ink, fontSize: 11, fontWeight: FontWeight.w600))])))),
       if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
       if (comboPopupLevel > 0) Positioned(
         top: 72,
