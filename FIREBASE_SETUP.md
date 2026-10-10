@@ -75,4 +75,16 @@ Do not deploy public rules such as `allow read, write: if true`. The app stores 
 - No Firebase project or OAuth client credentials have been supplied to this repository, so provider flows and cloud sync are not yet verified.
 - The local-only guest ID cannot sync to another device until the guest signs into Firebase. If the player chooses an already-existing Google/Apple account instead of linking the anonymous account, cloud progress migration must be handled explicitly.
 - No background retry queue, real-time multi-device conflict resolution, account deletion flow, or automated Firebase Emulator tests are included yet.
-- The current GitHub Actions workflow does not receive project-specific runtime values, so its build can verify compilation without testing live authentication. Configure CI secrets/variables and pass dart-defines before treating a CI run as an OAuth integration test.
+- The Android GitHub Actions workflow passes optional Firebase runtime values into the APK build. To enable this, open **Repository → Settings → Secrets and variables → Actions → Variables** and add the exact names below as repository variables (these are client-side app identifiers, not private keys):
+
+- `FITA_FIREBASE_PROJECT_ID`
+- `FITA_FIREBASE_MESSAGING_SENDER_ID`
+- `FITA_FIREBASE_ANDROID_API_KEY`
+- `FITA_FIREBASE_ANDROID_APP_ID`
+- `FITA_FIREBASE_IOS_API_KEY`
+- `FITA_FIREBASE_IOS_APP_ID`
+- `FITA_IOS_BUNDLE_ID`
+- `FITA_GOOGLE_SERVER_CLIENT_ID`
+- `FITA_GOOGLE_IOS_CLIENT_ID`
+
+The Android build only consumes the Android values plus the shared project/sender/Google server client values. iOS values are prepared for local iOS runs; this workflow does not build an IPA. If the variables are absent, the APK can still compile in local-guest-only mode, so a green CI build alone does not prove OAuth works.
