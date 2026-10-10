@@ -373,6 +373,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool finished = false;
   int? hintA;
   int? hintB;
+  final List<_GameSnapshot> _history = <_GameSnapshot>[];
   late final AnimationController _winController;
   late final Stopwatch _clock;
   Timer? _ticker;
@@ -412,6 +413,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       tiles[solvableOrder[p * 2 + 1]] = symbol;
     }
     removed.clear();
+    _history.clear();
     selected = null;
     mismatch = null;
     hintA = null;
@@ -457,6 +459,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     final first = selected!;
+    _history.add(_GameSnapshot(
+      removed: Set<int>.from(removed),
+      selected: selected,
+      moves: moves,
+      pairs: pairs,
+      hintA: hintA,
+      hintB: hintB,
+    ));
     setState(() {
       moves++;
       hintA = null;
@@ -512,9 +522,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _undo() {
+    if (busy || _history.isEmpty) return;
+    final previous = _history.removeLast();
+    setState(() {
+      removed
+        ..clear()
+        ..addAll(previous.removed);
+      selected = previous.selected;
+      moves = previous.moves;
+      pairs = previous.pairs;
+      hintA = previous.hintA;
+      hintB = previous.hintB;
+      mismatch = null;
+      finished = false;
+    });
+    _feedback();
+  }
+
   void _shuffle() {
     if (busy || finished) return;
     setState(() {
+      // Every matching pair occupies consecutive entries in a verified legal
+      // removal order, so this randomized deal always has a solution.
       _newBoard();
       burst++;
     });
@@ -574,7 +604,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       title: Text('Mahjong · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
       centerTitle: true,
       actions: [
-        IconButton(tooltip: 'Hint', onPressed: _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
+        IconButton(tooltip: 'Undo last move', onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
+        IconButton(tooltip: 'Show an available pair', onPressed: busy || finished ? null : _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
       ],
     ),
     body: Stack(children: [
@@ -650,12 +681,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           Expanded(child: FilledButton.icon(
             onPressed: busy || finished ? null : _shuffle,
             style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
-            icon: const Icon(Icons.shuffle_rounded), label: const Text('New layout'),
+            icon: const Icon(Icons.shuffle_rounded), label: const Text('Solvable shuffle'),
           )),
         ]),
       ]))),
     ]),
   );
+}
+
+class _GameSnapshot {
+  final Set<int> removed;
+  final int? selected;
+  final int moves;
+  final int pairs;
+  final int? hintA;
+  final int? hintB;
+
+  const _GameSnapshot({
+    required this.removed,
+    required this.selected,
+    required this.moves,
+    required this.pairs,
+    required this.hintA,
+    required this.hintB,
+  });
 }
 
 typedef _TileSpot = TileSpot;
