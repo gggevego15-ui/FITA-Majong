@@ -25,7 +25,7 @@ class FitaMahjongApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-        title: 'FITA Mahjong',
+        title: 'FITA Majong',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
@@ -133,6 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int backgroundTheme = 0;
   int tileTheme = 0;
   int animationLevel = 2;
+  String language = 'en';
 
   @override
   void initState() {
@@ -154,6 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundTheme = prefs.getInt('fita.theme.background') ?? 0;
       tileTheme = prefs.getInt('fita.theme.tiles') ?? 0;
       animationLevel = prefs.getInt('fita.animation.level') ?? 2;
+      language = prefs.getString('fita.language') ?? 'en';
     });
   }
 
@@ -234,6 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundTheme: backgroundTheme,
       tileTheme: tileTheme,
       animationLevel: animationLevel,
+      language: language,
     )));
     if (won == true && mounted && selectedLevel == level) {
       setState(() => level = level >= 10000 ? 10000 : level + 1);
@@ -308,6 +311,29 @@ class _HomeScreenState extends State<HomeScreen> {
     padding: const EdgeInsets.fromLTRB(24, 8, 24, 30),
     child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Little comforts', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
+      const SizedBox(height: 10),
+      const Text('LANGUAGE / ЯЗЫК', style: TextStyle(fontSize: 11, letterSpacing: 1.5, color: pine, fontWeight: FontWeight.w900)),
+      const SizedBox(height: 6),
+      DropdownButtonFormField<String>(
+        value: language,
+        decoration: const InputDecoration(filled: true, fillColor: Colors.white, border: OutlineInputBorder()),
+        items: const [
+          DropdownMenuItem(value: 'en', child: Text('English')),
+          DropdownMenuItem(value: 'ru', child: Text('Русский')),
+          DropdownMenuItem(value: 'es', child: Text('Español')),
+          DropdownMenuItem(value: 'fr', child: Text('Français')),
+          DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+          DropdownMenuItem(value: 'pt', child: Text('Português')),
+          DropdownMenuItem(value: 'it', child: Text('Italiano')),
+          DropdownMenuItem(value: 'tr', child: Text('Türkçe')),
+          DropdownMenuItem(value: 'zh', child: Text('中文')),
+          DropdownMenuItem(value: 'ja', child: Text('日本語')),
+          DropdownMenuItem(value: 'ko', child: Text('한국어')),
+          DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
+          DropdownMenuItem(value: 'ar', child: Text('العربية')),
+        ],
+        onChanged: (v) async { if (v == null) return; setState(() => language = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setString('fita.language', v); },
+      ),
       const SizedBox(height: 12),
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
@@ -343,7 +369,8 @@ class GameScreen extends StatefulWidget {
   final int backgroundTheme;
   final int tileTheme;
   final int animationLevel;
-  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2});
+  final String language;
+  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2, this.language = 'en'});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -364,6 +391,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late List<String> tiles;
   late List<_TileSpot> spots;
   int burst = 0;
+  bool shaking = false;
   final Set<int> removed = {};
   int? selected;
   int? mismatch;
@@ -476,11 +504,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       _feedback(success: true);
       setState(() {
         burst++;
+        shaking = true;
         removed.add(first);
         removed.add(i);
         selected = null;
         pairs--;
       });
+      Future.delayed(const Duration(milliseconds: 420), () { if (mounted) setState(() => shaking = false); });
       if (pairs == 0) {
         finished = true;
         _clock.stop();
@@ -601,7 +631,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     appBar: AppBar(
       backgroundColor: cream,
       foregroundColor: pine,
-      title: Text('Mahjong · Level ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      title: Text('FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
       centerTitle: true,
       actions: [
         IconButton(tooltip: 'Undo last move', onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
@@ -611,7 +641,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
       if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2)),
-      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: Column(children: [
+      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: AnimatedContainer(duration: const Duration(milliseconds: 70), transform: Matrix4.translationValues(shaking ? (Random().nextDouble() - .5) * 10 : 0, shaking ? (Random().nextDouble() - .5) * 8 : 0, 0), child: Column(children: [
         Row(children: [
           _StatPill(label: 'MOVES', value: '$moves'),
           const Spacer(),
@@ -619,7 +649,39 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           const Spacer(),
           _StatPill(label: 'PAIRS', value: '${removed.length ~/ 2}/72'),
         ]),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+        Row(
+          children: List.generate(4, (slot) => Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(right: slot == 3 ? 0 : 8),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutBack,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .72),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [BoxShadow(color: pine.withValues(alpha: .12), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) => ScaleTransition(scale: CurvedAnimation(parent: animation, curve: Curves.elasticOut), child: FadeTransition(opacity: animation, child: child)),
+                      child: Text(
+                        slot == 0 && selected != null ? tiles[selected!] : slot == 1 && hintA != null ? tiles[hintA!] : slot == 2 && hintB != null ? tiles[hintB!] : ['✦', '✧', '✦', '✧'][slot],
+                        key: ValueKey('${slot}_${slot == 0 ? selected : slot == 1 ? hintA : slot == 2 ? hintB : 0}'),
+                        style: TextStyle(fontSize: slot == 0 && selected != null ? 30 : 24, color: pine, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )),
+        ),
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(color: Colors.white.withValues(alpha: .72), borderRadius: BorderRadius.circular(14)),
@@ -631,7 +693,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 14.5, (constraints.maxHeight - 8) / 11.4).clamp(22.0, 48.0).toDouble();
+          final tileWidth = min((constraints.maxWidth - 8) / 14.5, (constraints.maxHeight - 8) / 11.4).clamp(24.0, 54.0).toDouble();
           final tileHeight = tileWidth * 1.08;
           return Center(child: SizedBox(
             width: tileWidth * 14.5,
@@ -684,7 +746,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             icon: const Icon(Icons.shuffle_rounded), label: const Text('Solvable shuffle'),
           )),
         ]),
-      ]))),
+      ])))),
     ]),
   );
 }
@@ -867,8 +929,8 @@ class _GardenTile extends StatelessWidget {
               transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
               child: SizedBox(
                 key: ValueKey(symbol),
-                width: 44,
-                height: 48,
+                width: 54,
+                height: 58,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
