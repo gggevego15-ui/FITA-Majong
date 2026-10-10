@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
@@ -142,13 +143,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         label: const Text('Google'),
                         style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
                       )),
-                      const SizedBox(width: 10),
-                      Expanded(child: OutlinedButton.icon(
-                        onPressed: _busy ? null : _signInApple,
-                        icon: const Icon(Icons.apple_rounded, size: 22),
-                        label: const Text('Apple'),
-                        style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      )),
+                      if (Platform.isIOS) ...[
+                        const SizedBox(width: 10),
+                        Expanded(child: OutlinedButton.icon(
+                          onPressed: _busy ? null : _signInApple,
+                          icon: const Icon(Icons.apple_rounded, size: 22),
+                          label: const Text('Apple'),
+                          style: OutlinedButton.styleFrom(foregroundColor: pine, side: const BorderSide(color: Color(0xFFB8C9B5)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        )),
+                      ],
                     ]),
                     const SizedBox(height: 10),
                     Text('No account needed. Your journey starts here.', style: TextStyle(fontSize: 11, color: pine.withOpacity(.7))),
