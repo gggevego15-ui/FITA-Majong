@@ -602,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     duration: Duration(milliseconds: 280 + index * 45),
                     curve: Curves.easeOutBack,
                     builder: (context, progress, child) => Opacity(
-                      opacity: progress.clamp(0.0, 1.0),
+                      opacity: progress.clamp(0.0, 1.0).toDouble(),
                       child: Transform.translate(offset: Offset(0, 12 * (1 - progress)), child: child),
                     ),
                     child: ListTile(
