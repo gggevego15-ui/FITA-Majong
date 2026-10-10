@@ -266,8 +266,8 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('Little comforts', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
       const SizedBox(height: 12),
-      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress();, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
-      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress();, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
+      SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: const Text('Sound effects'), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
+      SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: const Text('Haptic feedback'), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       const SizedBox(height: 8),
       const Text('Preferences are stored locally; cloud sync is used when your account and network are available.', style: TextStyle(color: Colors.black54, fontSize: 12)),
     ]),
