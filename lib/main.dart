@@ -734,6 +734,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _showThemeShop() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!prefs.containsKey('fita.rewards.totalXp')) {
+      await prefs.setInt('fita.rewards.totalXp', prefs.getInt('fita.rewards.xp') ?? 0);
+    }
     final ownedBackgrounds = prefs.getStringList('fita.shop.owned.background') ?? <String>['0'];
     final ownedTiles = prefs.getStringList('fita.shop.owned.tiles') ?? <String>['0'];
     final previousBackground = prefs.getInt('fita.theme.background') ?? backgroundTheme;
@@ -1186,6 +1189,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final unlocked = prefs.getStringList('fita.achievements.unlocked') ?? <String>[];
     var totalXp = prefs.getInt('fita.rewards.xp') ?? 0;
     var lifetimeXp = prefs.getInt('fita.rewards.totalXp') ?? totalXp;
+    await prefs.setInt('fita.rewards.totalXp', lifetimeXp);
     final newlyUnlocked = goals.where((g) => g.value >= g.target && !unlocked.contains(g.id)).toList();
     if (newlyUnlocked.isEmpty) return;
     for (final achievement in newlyUnlocked) {
