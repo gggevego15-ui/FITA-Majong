@@ -273,6 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool dailyCompleted = false;
   int dailyStreak = 0;
   int playerXp = 0;
+  int playerLifetimeXp = 0;
   String language = 'en';
 
   @override
@@ -300,10 +301,11 @@ class _HomeScreenState extends State<HomeScreen> {
       dailyCompleted = prefs.getString('fita.daily.completed') == _todayKey();
       dailyStreak = prefs.getInt('fita.daily.streak') ?? 0;
       playerXp = prefs.getInt('fita.rewards.xp') ?? 0;
+      playerLifetimeXp = prefs.getInt('fita.rewards.totalXp') ?? (prefs.getInt('fita.rewards.xp') ?? 0);
     });
   }
 
-  int get _playerRankLevel => playerXp ~/ 100 + 1;
+  int get _playerRankLevel => playerLifetimeXp ~/ 100 + 1;
 
   String _playerRank(int rankLevel) {
     if (rankLevel >= 50) return language == 'ru' ? 'Нефритовый мастер' : 'Jade Master';
@@ -317,7 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _refreshPlayerXp() async {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
-    setState(() => playerXp = prefs.getInt('fita.rewards.xp') ?? 0);
+    setState(() {
+      playerXp = prefs.getInt('fita.rewards.xp') ?? 0;
+      playerLifetimeXp = prefs.getInt('fita.rewards.totalXp') ?? (prefs.getInt('fita.rewards.xp') ?? 0);
+    });
   }
 
   Future<void> _saveProgress() async {
@@ -381,8 +386,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: TweenAnimationBuilder<double>(
-                  key: ValueKey('xp-$playerXp'),
-                  tween: Tween(begin: 0, end: (playerXp % 100) / 100),
+                  key: ValueKey('xp-$playerLifetimeXp'),
+                  tween: Tween(begin: 0, end: (playerLifetimeXp % 100) / 100),
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
                   builder: (context, progress, child) => LinearProgressIndicator(
@@ -396,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 7),
               Row(children: [
                 Expanded(child: Text(language == 'ru' ? 'До следующего уровня' : 'Progress to next level', style: const TextStyle(color: Colors.black54, fontSize: 11))),
-                Text('${playerXp % 100}/100 XP', style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800)),
+                Text('${playerLifetimeXp % 100}/100 XP', style: const TextStyle(color: pine, fontSize: 11, fontWeight: FontWeight.w800)),
               ]),
             ]),
           ),
@@ -1180,14 +1185,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ];
     final unlocked = prefs.getStringList('fita.achievements.unlocked') ?? <String>[];
     var totalXp = prefs.getInt('fita.rewards.xp') ?? 0;
+    var lifetimeXp = prefs.getInt('fita.rewards.totalXp') ?? totalXp;
     final newlyUnlocked = goals.where((g) => g.value >= g.target && !unlocked.contains(g.id)).toList();
     if (newlyUnlocked.isEmpty) return;
     for (final achievement in newlyUnlocked) {
       unlocked.add(achievement.id);
       totalXp += achievement.xp;
+      lifetimeXp += achievement.xp;
     }
     await prefs.setStringList('fita.achievements.unlocked', unlocked);
     await prefs.setInt('fita.rewards.xp', totalXp);
+    await prefs.setInt('fita.rewards.totalXp', lifetimeXp);
     if (!mounted) return;
     for (final achievement in newlyUnlocked) {
       if (!mounted) return;
