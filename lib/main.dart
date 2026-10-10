@@ -643,11 +643,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2)),
       SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: AnimatedContainer(duration: const Duration(milliseconds: 70), transform: Matrix4.translationValues(shaking ? (Random().nextDouble() - .5) * 10 : 0, shaking ? (Random().nextDouble() - .5) * 8 : 0, 0), child: Column(children: [
         Row(children: [
-          _StatPill(label: 'MOVES', value: '$moves'),
+          _StatPill(label: _gameLabel(widget.language, 'moves'), value: '$moves'),
           const Spacer(),
-          _StatPill(label: 'TIME', value: elapsed),
+          _StatPill(label: _gameLabel(widget.language, 'time'), value: elapsed),
           const Spacer(),
-          _StatPill(label: 'PAIRS', value: '${removed.length ~/ 2}/72'),
+          _StatPill(label: _gameLabel(widget.language, 'pairs'), value: '${removed.length ~/ 2}/72'),
         ]),
         const SizedBox(height: 12),
         Row(
@@ -693,9 +693,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 14.5, (constraints.maxHeight - 8) / 11.4).clamp(24.0, 54.0).toDouble();
+          final tileWidth = min((constraints.maxWidth - 8) / 11.5, (constraints.maxHeight - 8) / 9.0).clamp(28.0, 54.0).toDouble();
           final tileHeight = tileWidth * 1.08;
-          return Center(child: SizedBox(
+          return SingleChildScrollView(scrollDirection: Axis.horizontal, child: Center(child: SizedBox(
             width: tileWidth * 14.5,
             height: tileHeight * 10.35,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
@@ -731,7 +731,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               );
             })),
-          ));
+          )));
         })),
         const SizedBox(height: 10),
         Row(children: [
@@ -749,6 +749,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       ])))),
     ]),
   );
+}
+
+String _gameLabel(String language, String key) {
+  const labels = <String, Map<String, String>>{
+    'en': {'moves': 'MOVES', 'time': 'TIME', 'pairs': 'PAIRS'},
+    'ru': {'moves': 'ХОДЫ', 'time': 'ВРЕМЯ', 'pairs': 'ПАРЫ'},
+    'es': {'moves': 'MOVIMIENTOS', 'time': 'TIEMPO', 'pairs': 'PAREJAS'},
+    'fr': {'moves': 'COUPS', 'time': 'TEMPS', 'pairs': 'PAIRES'},
+    'de': {'moves': 'ZÜGE', 'time': 'ZEIT', 'pairs': 'PAARE'},
+    'pt': {'moves': 'JOGADAS', 'time': 'TEMPO', 'pairs': 'PARES'},
+    'it': {'moves': 'MOSSE', 'time': 'TEMPO', 'pairs': 'COPPIE'},
+    'tr': {'moves': 'HAMLE', 'time': 'SÜRE', 'pairs': 'ÇİFTLER'},
+    'zh': {'moves': '步数', 'time': '时间', 'pairs': '配对'},
+    'ja': {'moves': '手数', 'time': '時間', 'pairs': 'ペア'},
+    'ko': {'moves': '이동', 'time': '시간', 'pairs': '쌍'},
+    'hi': {'moves': 'चालें', 'time': 'समय', 'pairs': 'जोड़े'},
+    'ar': {'moves': 'الحركات', 'time': 'الوقت', 'pairs': 'الأزواج'},
+  };
+  return labels[language]?[key] ?? labels['en']![key]!;
 }
 
 class _GameSnapshot {
@@ -929,8 +948,8 @@ class _GardenTile extends StatelessWidget {
               transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
               child: SizedBox(
                 key: ValueKey(symbol),
-                width: 54,
-                height: 58,
+                width: 30,
+                height: 32,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
