@@ -12,6 +12,10 @@ Flutter starter for Android and iOS with a cozy nature-and-garden visual directi
 - Firestore rules limiting each signed-in user to their own `users/{uid}` document.
 - Cozy nature home screen and local pair-matching prototype.
 
+## Configure Firebase before real sign-in/cloud sync
+
+Follow the detailed checklist in [`FIREBASE_SETUP.md`](FIREBASE_SETUP.md). The repo includes [`firebase.local.example.json`](firebase.local.example.json); copy it to `firebase.local.json`, fill in the values from Firebase / Google Cloud, and run `flutter run --dart-define-from-file=firebase.local.json`. The local file is ignored by Git. The app deliberately stays in local-only guest mode when the required Firebase runtime values are absent.
+
 ## Required setup before real sign-in/cloud sync can work
 
 The integration code is committed, but this repository does **not** contain credentials or a Firebase project configuration. Provider sign-in and cloud sync are therefore not verified as operational yet.
