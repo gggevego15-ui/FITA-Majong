@@ -18,6 +18,21 @@ void main() {
       expect(order, hasLength(144));
       expect(MahjongRules.isValidRemovalOrder(layout, order), isTrue);
     });
+
+    test('every consecutive matching pair can be removed in the generated order', () {
+      final layout = MahjongRules.classicTurtleLayout();
+      final order = MahjongRules.classicRemovalOrder(layout);
+      final removed = <int>{};
+      for (var i = 0; i < order.length; i += 2) {
+        final first = order[i];
+        final second = order[i + 1];
+        expect(MahjongRules.isAvailable(first, layout, removed), isTrue);
+        removed.add(first);
+        expect(MahjongRules.isAvailable(second, layout, removed), isTrue);
+        removed.add(second);
+      }
+      expect(removed, hasLength(144));
+    });
   });
 
   group('MahjongRules.isAvailable', () {
