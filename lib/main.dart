@@ -928,7 +928,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  @override
   void _fitBoard(double viewportWidth, double viewportHeight, double boardWidth, double boardHeight) {
     final scale = min(viewportWidth / boardWidth, viewportHeight / boardHeight)
         .clamp(0.35, 1.0)
@@ -936,8 +935,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final dx = (viewportWidth - boardWidth * scale) / 2;
     final dy = (viewportHeight - boardHeight * scale) / 2;
     final target = Matrix4.identity()
-      ..translate(dx, dy)
-      ..scale(scale);
+      ..translateByDouble(dx, dy, 0, 1)
+      ..scaleByDouble(scale, scale, scale, 1);
     _boardFitController.stop();
     _boardFitAnimation = Matrix4Tween(
       begin: Matrix4.copy(_boardController.value),
