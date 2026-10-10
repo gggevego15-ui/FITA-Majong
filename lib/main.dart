@@ -567,9 +567,27 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(isRu ? '🏅 Достижения' : '🏅 Achievements', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine)),
+              Row(children: [
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD58D59), size: 30),
+                const SizedBox(width: 8),
+                Expanded(child: Text(isRu ? '🏅 Достижения' : '🏅 Achievements', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: pine))),
+              ]),
               const SizedBox(height: 6),
               Text(isRu ? 'Открыто: ${achievements.where((a) => a.value >= a.goal).length} из ${achievements.length}' : 'Unlocked: ${achievements.where((a) => a.value >= a.goal).length} of ${achievements.length}', style: const TextStyle(color: Colors.black54)),
+              const SizedBox(height: 4),
+              FutureBuilder<SharedPreferences>(
+                future: SharedPreferences.getInstance(),
+                builder: (context, snapshot) {
+                  final xp = snapshot.data?.getInt('fita.rewards.xp') ?? 0;
+                  return Row(children: [
+                    const Icon(Icons.stars_rounded, color: Color(0xFFD58D59), size: 20),
+                    const SizedBox(width: 5),
+                    Text('XP $xp', style: const TextStyle(color: pine, fontWeight: FontWeight.w900)),
+                    const SizedBox(width: 8),
+                    Text(isRu ? 'Награды за достижения' : 'Achievement rewards', style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                  ]);
+                },
+              ),
               const SizedBox(height: 12),
               Flexible(child: ListView.separated(
                 shrinkWrap: true,
@@ -578,16 +596,36 @@ class _HomeScreenState extends State<HomeScreen> {
                 itemBuilder: (context, index) {
                   final a = achievements[index];
                   final unlocked = a.value >= a.goal;
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: unlocked ? const Color(0xFFFFE4B5) : Colors.black12,
-                      child: Icon(unlocked ? Icons.check_rounded : a.icon, color: unlocked ? pine : Colors.black45),
+                  return TweenAnimationBuilder<double>(
+                    key: ValueKey('achievement-${index}'),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: Duration(milliseconds: 280 + index * 45),
+                    curve: Curves.easeOutBack,
+                    builder: (context, progress, child) => Opacity(
+                      opacity: progress.clamp(0.0, 1.0),
+                      child: Transform.translate(offset: Offset(0, 12 * (1 - progress)), child: child),
                     ),
-                    title: Text(a.title, style: TextStyle(color: unlocked ? pine : Colors.black54, fontWeight: FontWeight.w800)),
-                    subtitle: Text(a.description),
-                    trailing: SizedBox(
-                      width: 58,
-                      child: Text('${a.value.clamp(0, a.goal)}/${a.goal}', textAlign: TextAlign.end, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: pine)),
+                    child: ListTile(
+                      leading: AnimatedContainer(
+                        duration: const Duration(milliseconds: 350),
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: unlocked ? const Color(0xFFFFE4B5) : Colors.black12,
+                          boxShadow: unlocked ? const [BoxShadow(color: Color(0x44D58D59), blurRadius: 10, spreadRadius: 1)] : const [],
+                        ),
+                        child: Icon(unlocked ? Icons.check_rounded : a.icon, color: unlocked ? pine : Colors.black45),
+                      ),
+                      title: Text(a.title, style: TextStyle(color: unlocked ? pine : Colors.black54, fontWeight: FontWeight.w800)),
+                      subtitle: Text(a.description),
+                      trailing: SizedBox(
+                        width: 68,
+                        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
+                          Text('${a.value.clamp(0, a.goal)}/${a.goal}', textAlign: TextAlign.end, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: pine)),
+                          Text(unlocked ? '+XP' : '＋XP', style: TextStyle(fontSize: 10, color: unlocked ? const Color(0xFFD58D59) : Colors.black38, fontWeight: FontWeight.w900)),
+                        ]),
+                      ),
                     ),
                   );
                 },
@@ -901,8 +939,87 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getInt('fita.combo.bestStreak') ?? 0;
       if (newRecord > stored) await prefs.setInt('fita.combo.bestStreak', newRecord);
+      await _checkAchievementUnlocks(prefs);
     } catch (_) {
       // Keep the in-memory record for this session if local storage is unavailable.
+    }
+  }
+
+  Future<void> _checkAchievementUnlocks(SharedPreferences prefs) async {
+    if (!mounted) return;
+    final wins = prefs.getInt('fita.stats.wins') ?? 0;
+    final dailyWins = prefs.getInt('fita.stats.dailyWins') ?? 0;
+    final highestLevel = prefs.getInt('fita.stats.highestLevel') ?? widget.level;
+    final streak = prefs.getInt('fita.daily.streak') ?? 0;
+    final combo = prefs.getInt('fita.combo.bestStreak') ?? bestComboStreak;
+    final goals = <({String id, String title, String subtitle, IconData icon, int value, int target, int xp})>[
+      (id: 'first', title: widget.language == 'ru' ? 'Первый шаг' : 'First steps', subtitle: widget.language == 'ru' ? 'Первая победа' : 'First game won', icon: Icons.flag_rounded, value: wins, target: 1, xp: 25),
+      (id: 'wins10', title: widget.language == 'ru' ? 'Мастер головоломок' : 'Puzzle master', subtitle: widget.language == 'ru' ? '10 побед' : 'Win 10 games', icon: Icons.auto_awesome_rounded, value: wins, target: 10, xp: 75),
+      (id: 'wins50', title: widget.language == 'ru' ? 'Легенда сада' : 'Garden legend', subtitle: widget.language == 'ru' ? '50 побед' : 'Win 50 games', icon: Icons.park_rounded, value: wins, target: 50, xp: 200),
+      (id: 'level10', title: widget.language == 'ru' ? 'Путь открыт' : 'Pathfinder', subtitle: widget.language == 'ru' ? 'Достигнут уровень 10' : 'Reach level 10', icon: Icons.route_rounded, value: highestLevel, target: 10, xp: 50),
+      (id: 'level100', title: widget.language == 'ru' ? 'Вершина пути' : 'Trailblazer', subtitle: widget.language == 'ru' ? 'Достигнут уровень 100' : 'Reach level 100', icon: Icons.military_tech_rounded, value: highestLevel, target: 100, xp: 250),
+      (id: 'daily1', title: widget.language == 'ru' ? 'Роса дня' : 'Daily dew', subtitle: widget.language == 'ru' ? 'Ежедневный уровень пройден' : 'Complete a daily level', icon: Icons.wb_twilight_rounded, value: dailyWins, target: 1, xp: 30),
+      (id: 'streak3', title: widget.language == 'ru' ? 'Ритм недели' : 'Weekly rhythm', subtitle: widget.language == 'ru' ? '3 дня подряд' : '3-day streak', icon: Icons.local_fire_department_rounded, value: streak, target: 3, xp: 60),
+      (id: 'streak7', title: widget.language == 'ru' ? 'Неудержимый' : 'Unstoppable', subtitle: widget.language == 'ru' ? '7 дней подряд' : '7-day streak', icon: Icons.bolt_rounded, value: streak, target: 7, xp: 120),
+      (id: 'combo5', title: widget.language == 'ru' ? 'Комбо x5' : 'Combo x5', subtitle: widget.language == 'ru' ? '5 пар подряд' : '5 matches in a row', icon: Icons.flash_on_rounded, value: combo, target: 5, xp: 40),
+      (id: 'combo10', title: widget.language == 'ru' ? 'Комбо x10' : 'Combo x10', subtitle: widget.language == 'ru' ? '10 пар подряд' : '10 matches in a row', icon: Icons.local_fire_department_rounded, value: combo, target: 10, xp: 90),
+    ];
+    final unlocked = prefs.getStringList('fita.achievements.unlocked') ?? <String>[];
+    var totalXp = prefs.getInt('fita.rewards.xp') ?? 0;
+    final newlyUnlocked = goals.where((g) => g.value >= g.target && !unlocked.contains(g.id)).toList();
+    if (newlyUnlocked.isEmpty) return;
+    for (final achievement in newlyUnlocked) {
+      unlocked.add(achievement.id);
+      totalXp += achievement.xp;
+    }
+    await prefs.setStringList('fita.achievements.unlocked', unlocked);
+    await prefs.setInt('fita.rewards.xp', totalXp);
+    if (!mounted) return;
+    for (final achievement in newlyUnlocked) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        duration: const Duration(seconds: 3),
+        padding: EdgeInsets.zero,
+        content: TweenAnimationBuilder<double>(
+          tween: Tween(begin: .72, end: 1),
+          duration: const Duration(milliseconds: 520),
+          curve: Curves.elasticOut,
+          builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF315B45), Color(0xFF4C8061)]),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFFFD27A), width: 1.5),
+              boxShadow: const [BoxShadow(color: Color(0x55315B45), blurRadius: 18, offset: Offset(0, 6))],
+            ),
+            child: Row(children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(color: Color(0xFFFFE4B5), shape: BoxShape.circle),
+                child: Icon(achievement.icon, color: Color(0xFF315B45), size: 27),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(widget.language == 'ru' ? 'ДОСТИЖЕНИЕ ОТКРЫТО!' : 'ACHIEVEMENT UNLOCKED!', style: const TextStyle(color: Color(0xFFFFD27A), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 3),
+                Text(achievement.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
+                Text(achievement.subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              ])),
+              Column(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.stars_rounded, color: Color(0xFFFFD27A), size: 23),
+                Text('+${achievement.xp} XP', style: const TextStyle(color: Color(0xFFFFD27A), fontSize: 12, fontWeight: FontWeight.w900)),
+              ]),
+            ]),
+          ),
+        ),
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 250));
     }
   }
 
@@ -1226,6 +1343,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       scores.insert(0, record);
       await prefs.setStringList('fita.leaderboard', scores.take(20).toList());
     }
+    await _checkAchievementUnlocks(prefs);
     if (!mounted) return;
     showDialog<void>(
       context: context,
