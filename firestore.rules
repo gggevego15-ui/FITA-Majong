@@ -38,7 +38,8 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
 
       allow get: if request.auth != null
-        && (resource.data.hostUid == request.auth.uid
+        && (resource == null
+          || resource.data.hostUid == request.auth.uid
           || resource.data.guestUid == request.auth.uid
           || resource.data.status == 'waiting');
       allow list: if false;
