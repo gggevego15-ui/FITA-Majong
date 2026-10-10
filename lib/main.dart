@@ -62,9 +62,12 @@ String _tr(String language, String key) {
     'moves':['MOVES','ХОДЫ','MOVIMIENTOS','COUPS','ZÜGE','JOGADAS','MOSSE','HAMLE','步数','手数','이동','चालें','الحركات'],
     'time':['TIME','ВРЕМЯ','TIEMPO','TEMPS','ZEIT','TEMPO','TEMPO','SÜRE','时间','時間','시간','समय','الوقت'],
     'pairs':['PAIRS','ПАРЫ','PAREJAS','PAIRES','PAARE','PARES','COPPIE','ÇİFTLER','配对','ペア','쌍','जोड़े','الأزواج'],
+    'chapter':['Chapter','Глава','Capítulo','Chapitre','Kapitel','Capítulo','Capitolo','Bölüm','章节','章','챕터','अध्याय','الفصل'],
+    'bestLevels':['Best completed levels on this device','Лучшие пройденные уровни на устройстве','Mejores niveles completados en este dispositivo','Meilleurs niveaux terminés sur cet appareil','Beste abgeschlossene Level auf diesem Gerät','Melhores níveis concluídos neste dispositivo','Migliori livelli completati su questo dispositivo','Bu cihazdaki en iyi tamamlanan seviyeler','本设备已完成的最佳关卡','この端末でクリアした最高レベル','이 기기에서 완료한 최고 레벨','इस डिवाइस पर पूरे किए गए सर्वश्रेष्ठ स्तर','أفضل المستويات المكتملة على هذا الجهاز'],
+    'noRecords':['No records yet — finish your first level!','Записей пока нет — пройди первый уровень!','Aún no hay registros: ¡termina tu primer nivel!','Aucun record — termine ton premier niveau !','Noch keine Rekorde — schließe dein erstes Level ab!','Sem registros — conclua seu primeiro nível!','Nessun record — completa il primo livello!','Henüz kayıt yok — ilk seviyeni bitir!','暂无记录——完成第一关吧！','記録はありません。最初のレベルをクリアしよう！','기록이 없어요. 첫 레벨을 완료해 보세요!','अभी कोई रिकॉर्ड नहीं — पहला स्तर पूरा करें!','لا توجد سجلات بعد — أكمل المستوى الأول!'],
     'savedLocal':['Saved on this device; cloud sync is unavailable right now.','Сохранено на устройстве; облачная синхронизация сейчас недоступна.','Guardado en el dispositivo; la sincronización no está disponible.','Enregistré sur cet appareil ; synchronisation indisponible.','Lokal gespeichert; Cloud-Synchronisierung derzeit nicht verfügbar.','Salvo no dispositivo; sincronização indisponível agora.','Salvato sul dispositivo; sincronizzazione cloud non disponibile.','Cihaza kaydedildi; bulut eşitlemesi şu an kullanılamıyor.','已保存在本机；云同步暂不可用。','端末に保存しました。クラウド同期は現在利用できません。','기기에 저장됨. 클라우드 동기화는 현재 사용할 수 없어요.','डिवाइस पर सहेजा गया; क्लाउड सिंक अभी उपलब्ध नहीं।','حُفظ على الجهاز؛ المزامنة السحابية غير متاحة الآن.'],
-    'dailyPlanned':['Daily challenges are planned for a future update.','Ежедневные испытания появятся в будущем обновлении.','Los retos diarios llegarán en una futura actualización.','Les défis quotidiens arriveront dans une prochaine mise à jour.','Tägliche Herausforderungen folgen in einem zukünftigen Update.','Desafios diários chegarão numa atualização futura.','Le sfide giornaliere arriveranno in un futuro aggiornamento.','Günlük görevler gelecek güncellemede eklenecek.','每日挑战将在未来版本推出。','デイリーチャレンジは今後の更新で追加予定です。','일일 도전은 향후 업데이트에서 제공됩니다.','दैनिक चुनौतियाँ भविष्य के अपडेट में आएँगी।','ستتوفر التحديات اليومية في تحديث قادم.'],
-    'multiplayerPlanned':['Online multiplayer is planned; no live matches yet.','Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
+    'dailyPlanned':[_tr(language, 'dailyPlanned'),'Ежедневные испытания появятся в будущем обновлении.','Los retos diarios llegarán en una futura actualización.','Les défis quotidiens arriveront dans une prochaine mise à jour.','Tägliche Herausforderungen folgen in einem zukünftigen Update.','Desafios diários chegarão numa atualização futura.','Le sfide giornaliere arriveranno in un futuro aggiornamento.','Günlük görevler gelecek güncellemede eklenecek.','每日挑战将在未来版本推出。','デイリーチャレンジは今後の更新で追加予定です。','일일 도전은 향후 업데이트에서 제공됩니다.','दैनिक चुनौतियाँ भविष्य के अपडेट में आएँगी।','ستتوفر التحديات اليومية في تحديث قادم.'],
+    'multiplayerPlanned':[_tr(language, 'multiplayerPlanned'),'Сетевая игра планируется; онлайн-матчей пока нет.','El multijugador está planeado; aún no hay partidas en vivo.','Le multijoueur est prévu ; aucune partie en direct pour le moment.','Mehrspieler ist geplant; noch keine Live-Partien.','O modo multijogador está planejado; ainda não há partidas.','Il multigiocatore è previsto; non ci sono ancora partite online.','Çok oyunculu mod planlanıyor; henüz canlı maç yok.','多人模式正在规划中，暂时没有在线对局。','オンライン対戦は今後対応予定です。','온라인 멀티플레이는 준비 중이며 아직 실시간 경기는 없습니다.','मल्टीप्लेयर की योजना है; अभी लाइव मैच नहीं हैं।','اللعب الجماعي قيد التخطيط؛ لا توجد مباريات مباشرة بعد.'],
   };
   final values = t[key];
   if (values == null) return key;
@@ -243,9 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
         SliverPadding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 28), sliver: SliverList(delegate: SliverChildListDelegate([
           Row(children: [
             const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('GOOD DAY, PLAYER', style: TextStyle(fontSize: 10, letterSpacing: 2, color: pine, fontWeight: FontWeight.w800)),
+              Text(_tr(language, 'goodDay'), style: const TextStyle(fontSize: 10, letterSpacing: 2, color: pine, fontWeight: FontWeight.w800)),
               SizedBox(height: 5),
-              Text('Your quiet corner', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: pine)),
+              Text(_tr(language, 'quietCorner'), style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: pine)),
             ]),
             const Spacer(),
             IconButton.filledTonal(onPressed: () => _settings(context), icon: const Icon(Icons.tune_rounded), style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: .75), foregroundColor: pine)),
@@ -257,9 +260,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('THE GARDEN PATH', style: TextStyle(color: Color(0xFFDDEACB), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w800)),
+                  Text(_tr(language, 'gardenPath'), style: const TextStyle(color: Color(0xFFDDEACB), fontSize: 10, letterSpacing: 2, fontWeight: FontWeight.w800)),
                   SizedBox(height: 8),
-                  Text('A fresh puzzle\nawaits you.', style: TextStyle(color: Colors.white, fontSize: 25, height: 1.12, fontWeight: FontWeight.w900)),
+                  Text(_tr(language, 'freshPuzzle'), style: const TextStyle(color: Colors.white, fontSize: 25, height: 1.12, fontWeight: FontWeight.w900)),
                 ])),
                 Container(width: 88, height: 100, decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(24)), child: const Icon(Icons.park_rounded, color: Color(0xFFFFE4A8), size: 62)),
               ]),
@@ -272,19 +275,19 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
           ),
           const SizedBox(height: 24),
-          Row(children: [const Expanded(child: Text('YOUR JOURNEY', style: TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900))), Text('LEVEL $level / 10,000', style: const TextStyle(fontSize: 10, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800))]),
+          Row(children: [Expanded(child: Text(_tr(language, 'yourJourney'), style: const TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900))), Text('${_tr(language, 'level')} $level / 10,000', style: const TextStyle(fontSize: 10, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800))]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: 'Daily dew', subtitle: 'A tiny daily challenge', color: const Color(0xFFF7D6A8), onTap: () => _message(context, 'Daily challenges are planned for a future update.'))),
+            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: _tr(language, 'dailyDew'), subtitle: _tr(language, 'dailyChallenge'), color: const Color(0xFFF7D6A8), onTap: () => _message(context, 'Daily challenges are planned for a future update.'))),
             const SizedBox(width: 12),
-            Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: 'Trail ranks', subtitle: 'Climb the leaderboard', color: const Color(0xFFC8DCC1), onTap: _showLeaderboard)),
+            Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: _tr(language, 'trailRanks'), subtitle: _tr(language, 'climbLeaderboard'), color: const Color(0xFFC8DCC1), onTap: _showLeaderboard)),
           ]),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.people_alt_rounded, title: 'Play with a friend', subtitle: 'Race through the same layout', onTap: () => _message(context, 'Online multiplayer is planned; no live matches yet.')),
+          _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: () => _message(context, 'Online multiplayer is planned; no live matches yet.')),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.map_rounded, title: 'Level path', subtitle: '10 chapters · 10,000 puzzles', onTap: _showLevelPath),
+          _WideAction(icon: Icons.map_rounded, title: _tr(language, 'levelPath'), subtitle: _tr(language, 'chapters'), onTap: _showLevelPath),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.grid_view_rounded, title: 'Tile garden', subtitle: 'Explore patterns and tile sets', onTap: () => _settings(context)),
+          _WideAction(icon: Icons.grid_view_rounded, title: _tr(language, 'tileGarden'), subtitle: _tr(language, 'exploreTiles'), onTap: () => _settings(context)),
           const SizedBox(height: 18),
           Center(child: Text(_tr(language, 'breathe'), style: TextStyle(color: pine.withValues(alpha: .7), fontStyle: FontStyle.italic))),
         ]))),
@@ -337,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       backgroundColor: completed ? const Color(0xFFB8F2E6) : unlocked ? const Color(0xFFFFE4B5) : Colors.black12,
                       child: Icon(completed ? Icons.check_rounded : unlocked ? Icons.flag_rounded : Icons.lock_rounded, color: pine),
                     ),
-                    title: Text('Chapter $chapter', style: const TextStyle(fontWeight: FontWeight.w800, color: pine)),
+                    title: Text('${_tr(language, 'chapter')} $chapter', style: const TextStyle(fontWeight: FontWeight.w800, color: pine)),
                     subtitle: Text('Levels $firstLevel–${(index + 1) * 1000}'),
                     trailing: unlocked ? const Icon(Icons.chevron_right_rounded, color: pine) : null,
                     onTap: unlocked ? () {
@@ -361,11 +364,11 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet<void>(context: context, backgroundColor: cream, showDragHandle: true, builder: (ctx) => Padding(
       padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('🏆 Trail leaderboard', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: pine)),
+        Text('🏆 ${_tr(language, 'trailRanks')}', style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900, color: pine)),
         const SizedBox(height: 8),
-        const Text('Best completed levels on this device', style: TextStyle(color: Colors.black54)),
+        Text(_tr(language, 'bestLevels'), style: const TextStyle(color: Colors.black54)),
         const SizedBox(height: 12),
-        if (scores.isEmpty) const Padding(padding: EdgeInsets.all(18), child: Text('No records yet — finish your first level!')),
+        if (scores.isEmpty) Padding(padding: const EdgeInsets.all(18), child: Text(_tr(language, 'noRecords'))),
         ...scores.take(10).toList().asMap().entries.map((e) => ListTile(leading: CircleAvatar(backgroundColor: const Color(0xFFFFE4B5), child: Text('${e.key + 1}')), title: Text(e.value.split('|').first), subtitle: Text(e.value.contains('|') ? 'Level ${e.value.split('|').last}' : 'Completed'), dense: true)),
       ]),
     ));
@@ -416,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Container(width: 48, height: 42, decoration: BoxDecoration(color: [[const Color(0xFFFFFDF6)], [const Color(0xFFFFD6E8)], [const Color(0xFFB8F2E6)], [const Color(0xFF22254B)]][i][0], borderRadius: BorderRadius.circular(13), border: Border.all(color: tileTheme == i ? pine : Colors.white, width: tileTheme == i ? 3 : 1)), child: Center(child: Text(['🌿','🌈','💎','✨'][i]))),
       ))),
       const SizedBox(height: 12),
-      Row(children: [const Expanded(child: Text('Animation intensity', style: TextStyle(color: pine, fontWeight: FontWeight.w700))), Text(['Low','Normal','Extra'][animationLevel], style: const TextStyle(color: pine))]),
+      Row(children: [const Expanded(child: Text(_tr(language, 'animationIntensity'), style: const TextStyle(color: pine, fontWeight: FontWeight.w700))), Text([_tr(language, 'low'),_tr(language, 'normal'),_tr(language, 'extra')][animationLevel], style: const TextStyle(color: pine))]),
       Slider(value: animationLevel.toDouble(), min: 0, max: 2, divisions: 2, activeColor: pine, onChanged: (v) async { setState(() => animationLevel = v.round()); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setInt('fita.animation.level', v.round()); }),
       const SizedBox(height: 8),
       Text(_tr(language, 'preferencesNote'), style: const TextStyle(color: Colors.black54, fontSize: 12)),
