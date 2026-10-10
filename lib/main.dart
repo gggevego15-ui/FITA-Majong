@@ -845,7 +845,59 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
           ));
         }
-        Widget previewPanel() => Container(margin: const EdgeInsets.symmetric(vertical: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(gradient: LinearGradient(colors: backgroundGradients[previewBackground]), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(language == 'ru' ? 'ПРЕДПРОСМОТР · БЕЗ ПОКУПКИ' : 'PREVIEW · NO PURCHASE', style: const TextStyle(color: pine, fontWeight: FontWeight.w900, fontSize: 11)), const SizedBox(height: 8), Row(children: [for (final symbol in (previewTiles == 0 ? ['🌿', '🌸', '🦋'] : previewTiles == 1 ? ['🌈', '🪷', '🌺'] : previewTiles == 2 ? ['💎', '💎', '💎'] : ['✨', '✨', '✨'])) Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 3), height: 46, decoration: BoxDecoration(color: tileColors[previewTiles], borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white)), child: Center(child: Text(symbol, style: TextStyle(fontSize: 24, color: previewTiles == 3 ? Colors.white : pine))))]), const SizedBox(height: 6), Text((language == 'ru' ? backgroundNamesRu[previewBackground] : backgroundNames[previewBackground]) + ' · ' + (language == 'ru' ? tileNamesRu[previewTiles] : tileNames[previewTiles]), style: const TextStyle(color: pine, fontWeight: FontWeight.w700, fontSize: 11))]));
+        Widget previewPanel() {
+          final symbols = previewTiles == 0
+              ? ['🌿', '🌸', '🦋']
+              : previewTiles == 1
+                  ? ['🌈', '🪷', '🌺']
+                  : previewTiles == 2
+                      ? ['💎', '💎', '💎']
+                      : ['✨', '✨', '✨'];
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: backgroundGradients[previewBackground]),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  language == 'ru' ? 'ПРЕДПРОСМОТР · БЕЗ ПОКУПКИ' : 'PREVIEW · NO PURCHASE',
+                  style: const TextStyle(color: pine, fontWeight: FontWeight.w900, fontSize: 11),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: symbols.map((symbol) => Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: tileColors[previewTiles],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: Center(
+                        child: Text(symbol, style: TextStyle(
+                          fontSize: 24,
+                          color: previewTiles == 3 ? Colors.white : pine,
+                        )),
+                      ),
+                    ),
+                  )).toList(),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  (language == 'ru' ? backgroundNamesRu[previewBackground] : backgroundNames[previewBackground]) +
+                      ' · ' +
+                      (language == 'ru' ? tileNamesRu[previewTiles] : tileNames[previewTiles]),
+                  style: const TextStyle(color: pine, fontWeight: FontWeight.w700, fontSize: 11),
+                ),
+              ],
+            ),
+          );
+        }
         return SafeArea(child: SizedBox(
           height: MediaQuery.of(sheetContext).size.height * .82,
           child: Padding(
