@@ -129,7 +129,7 @@ class MultiplayerService {
               ? 'waiting'
               : 'playing';
       tx.update(ref, {
-        isHost ? 'hostPairs' : 'guestPairs': pairsLeft.clamp(0, 72),
+        isHost ? 'hostPairs' : 'guestPairs': pairsLeft.clamp(0, 72).toInt(),
         isHost ? 'hostWon' : 'guestWon': won,
         'status': nextStatus,
         'updatedAt': FieldValue.serverTimestamp(),
