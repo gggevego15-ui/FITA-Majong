@@ -17,5 +17,77 @@ service cloud.firestore {
         && request.resource.data.schemaVersion == 1
         && request.resource.data.updatedAt == request.time;
     }
+
+    match /matches/{matchId} {
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'code', 'seed', 'hostUid', 'guestUid', 'hostPairs',
+          'guestPairs', 'hostWon', 'guestWon', 'status',
+          'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.code == matchId
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.guestUid == null
+        && request.resource.data.seed is int
+        && request.resource.data.hostPairs == 72
+        && request.resource.data.guestPairs == 72
+        && request.resource.data.hostWon == false
+        && request.resource.data.guestWon == false
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow get: if request.auth != null
+        && (resource.data.hostUid == request.auth.uid
+          || resource.data.guestUid == request.auth.uid
+          || resource.data.status == 'waiting');
+      allow list: if false;
+
+      allow update: if request.auth != null && (
+        (
+          resource.data.hostUid == request.auth.uid
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.guestUid == resource.data.guestUid
+          && request.resource.data.seed == resource.data.seed
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['hostPairs', 'hostWon', 'status', 'updatedAt'])
+          && request.resource.data.hostPairs is int
+          && request.resource.data.hostPairs >= 0
+          && request.resource.data.hostPairs <= 72
+          && request.resource.data.hostWon is bool
+          && request.resource.data.updatedAt == request.time
+        )
+        || (
+          resource.data.guestUid == null
+          && resource.data.status == 'waiting'
+          && resource.data.hostUid != request.auth.uid
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.guestUid == request.auth.uid
+          && request.resource.data.seed == resource.data.seed
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['guestUid', 'guestPairs', 'guestWon', 'status', 'updatedAt'])
+          && request.resource.data.guestPairs == 72
+          && request.resource.data.guestWon == false
+          && request.resource.data.status == 'playing'
+          && request.resource.data.updatedAt == request.time
+        )
+        || (
+          resource.data.guestUid == request.auth.uid
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.guestUid == resource.data.guestUid
+          && request.resource.data.seed == resource.data.seed
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['guestPairs', 'guestWon', 'status', 'updatedAt'])
+          && request.resource.data.guestPairs is int
+          && request.resource.data.guestPairs >= 0
+          && request.resource.data.guestPairs <= 72
+          && request.resource.data.guestWon is bool
+          && request.resource.data.updatedAt == request.time
+        )
+      );
+      allow delete: if request.auth != null
+        && resource.data.hostUid == request.auth.uid
+        && resource.data.status == 'waiting';
+    }
   }
 }
