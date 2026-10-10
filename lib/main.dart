@@ -1042,11 +1042,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
-          final tileWidth = min((constraints.maxWidth - 8) / 9.5, (constraints.maxHeight - 8) / 7.5).clamp(40.0, 70.0).toDouble();
+          // Bias toward larger touch targets on phones; the board scrolls when needed.
+          final tileWidth = min((constraints.maxWidth - 8) / 8.5, (constraints.maxHeight - 8) / 6.5).clamp(44.0, 76.0).toDouble();
           final tileHeight = tileWidth;
           return SingleChildScrollView(scrollDirection: Axis.vertical, physics: const ClampingScrollPhysics(), child: SingleChildScrollView(scrollDirection: Axis.horizontal, physics: const ClampingScrollPhysics(), child: SizedBox(
-            width: tileWidth * 14.5,
-            height: tileHeight * 10.35,
+            width: tileWidth * 14.6,
+            height: tileHeight * 10.6,
             child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
               final spot = spots[i];
               final gone = removed.contains(i);
@@ -1056,8 +1057,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               final enabled = _availableInState(i, spots, removed);
               final tileKey = _tileKeys.putIfAbsent(i, () => GlobalKey());
               return Positioned(
-                left: spot.x * tileWidth * .94 + spot.layer * tileWidth * .10,
-                top: (spot.y + 1) * tileHeight * .94 - spot.layer * tileHeight * .18,
+                left: spot.x * tileWidth * .98 + spot.layer * tileWidth * .12,
+                top: (spot.y + 1) * tileHeight * .98 - spot.layer * tileHeight * .20,
                 width: tileWidth,
                 height: tileHeight,
                 child: Transform.scale(
@@ -1331,8 +1332,8 @@ class _GardenTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: Stack(children: [
-            Positioned(top: 7, left: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
-            Positioned(bottom: 7, right: 8, child: Icon(Icons.circle, size: 5, color: borderColor.withValues(alpha: .7))),
+            Positioned(top: 5, left: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
+            Positioned(bottom: 5, right: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
             Center(child: SizedBox(
                 width: double.infinity,
                 height: double.infinity,
@@ -1345,7 +1346,7 @@ class _GardenTile extends StatelessWidget {
                     Center(
                       child: Text(
                         symbol,
-                        style: const TextStyle(fontSize: 28, height: 1.0),
+                        style: const TextStyle(fontSize: 30, height: 1.0),
                         textAlign: TextAlign.center,
                       ),
                     ),
