@@ -5,7 +5,5 @@
   "FITA_FIREBASE_ANDROID_APP_ID": "1:replace:android:replace",
   "FITA_FIREBASE_IOS_API_KEY": "replace-with-ios-api-key",
   "FITA_FIREBASE_IOS_APP_ID": "1:replace:ios:replace",
-  "FITA_IOS_BUNDLE_ID": "replace.with.your.ios.bundle.id",
-  "FITA_GOOGLE_SERVER_CLIENT_ID": "replace-with-web-oauth-client-id.apps.googleusercontent.com",
-  "FITA_GOOGLE_IOS_CLIENT_ID": "replace-with-ios-oauth-client-id.apps.googleusercontent.com"
+  "FITA_IOS_BUNDLE_ID": "replace.with.your.ios.bundle.id"
 }
