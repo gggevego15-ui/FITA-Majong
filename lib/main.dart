@@ -466,6 +466,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late List<_TileSpot> spots;
   int burst = 0;
   int matchStreak = 0;
+  int activeComboLevel = 0;
   bool shaking = false;
   final Set<int> removed = {};
   int? selected;
@@ -586,6 +587,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     hintB = null;
     moves = 0;
     matchStreak = 0;
+    activeComboLevel = 0;
     busy = false;
     finished = false;
     _clock..reset()..start();
@@ -703,6 +705,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (tiles[first] == tiles[i]) {
       matchStreak++;
       final comboLevel = matchStreak == 10 ? 3 : matchStreak == 5 ? 2 : matchStreak == 3 ? 1 : 0;
+      activeComboLevel = comboLevel;
       _feedback(success: true, comboLevel: comboLevel);
       setState(() {
         burst++;
@@ -721,6 +724,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       }
     } else {
       matchStreak = 0;
+      activeComboLevel = 0;
       _feedback();
       setState(() {
         mismatch = i;
@@ -845,8 +849,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ),
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
-      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2)),
-      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: AnimatedContainer(duration: const Duration(milliseconds: 70), transform: Matrix4.translationValues(shaking ? (Random().nextDouble() - .5) * 10 : 0, shaking ? (Random().nextDouble() - .5) * 8 : 0, 0), child: Column(children: [
+      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
+      SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 16), child: AnimatedContainer(duration: const Duration(milliseconds: 70), transform: Matrix4.translationValues(shaking ? (Random().nextDouble() - .5) * (10 + activeComboLevel * 4) : 0, shaking ? (Random().nextDouble() - .5) * (8 + activeComboLevel * 3) : 0, 0), child: Column(children: [
         Row(children: [
           _StatPill(label: _gameLabel(widget.language, 'moves'), value: '$moves'),
           const Spacer(),
