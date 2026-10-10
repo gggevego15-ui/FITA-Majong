@@ -17,3 +17,5 @@ ios/Flutter/flutter_export_environment.sh
 *.keystore
 *.p12
 *.mobileprovision
+
+firebase.local.json
