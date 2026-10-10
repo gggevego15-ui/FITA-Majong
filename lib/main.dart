@@ -347,12 +347,12 @@ class _HomeScreenState extends State<HomeScreen> {
           Row(children: [Expanded(child: Text(_tr(language, 'yourJourney'), style: const TextStyle(fontSize: 11, letterSpacing: 2, color: pine, fontWeight: FontWeight.w900))), Text('${_tr(language, 'level')} $level / 10,000', style: const TextStyle(fontSize: 10, letterSpacing: 1, color: pine, fontWeight: FontWeight.w800))]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: _tr(language, 'dailyDew'), subtitle: _tr(language, 'dailyChallenge'), color: const Color(0xFFF7D6A8), onTap: () => _message(context, _tr(language, 'dailyPlanned')))),
+            Expanded(child: _ModeCard(icon: Icons.auto_awesome_rounded, title: _tr(language, 'dailyDew'), subtitle: _dailySubtitle(), color: const Color(0xFFF7D6A8), onTap: _launchDailyLevel)),
             const SizedBox(width: 12),
             Expanded(child: _ModeCard(icon: Icons.emoji_events_rounded, title: _tr(language, 'trailRanks'), subtitle: _tr(language, 'climbLeaderboard'), color: const Color(0xFFC8DCC1), onTap: _showLeaderboard)),
           ]),
           const SizedBox(height: 12),
-          _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: () => _message(context, _tr(language, 'multiplayerPlanned'))),
+          _WideAction(icon: Icons.people_alt_rounded, title: _tr(language, 'playFriend'), subtitle: _tr(language, 'sameLayout'), onTap: _openMultiplayer),
           const SizedBox(height: 12),
           _WideAction(icon: Icons.map_rounded, title: _tr(language, 'levelPath'), subtitle: _tr(language, 'chapters'), onTap: _showLevelPath),
           const SizedBox(height: 12),
@@ -363,6 +363,82 @@ class _HomeScreenState extends State<HomeScreen> {
       ])),
     ]),
   );
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  int _dailySeed() {
+    var seed = 17;
+    for (final unit in _todayKey().codeUnits) {
+      seed = (seed * 31 + unit) & 0x7fffffff;
+    }
+    return seed;
+  }
+
+  String _dailySubtitle() {
+    return _tr(language, 'dailyChallenge') + (DateTime.now().hour < 12 ? ' · ☀' : ' · 🌙');
+  }
+
+  Future<void> _launchDailyLevel() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _todayKey();
+    if (!mounted) return;
+    final alreadyDone = prefs.getString('fita.daily.completed') == today;
+    if (alreadyDone) {
+      _message(context, _tr(language, 'dailyDone'));
+      return;
+    }
+    final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(
+      level: _dailySeed() % 10000 + 1,
+      seed: _dailySeed(),
+      dailyDate: today,
+      sound: sound,
+      haptics: haptics,
+      backgroundTheme: backgroundTheme,
+      tileTheme: tileTheme,
+      animationLevel: animationLevel,
+      comboEffects: comboEffects,
+      language: language,
+    )));
+    if (won == true) {
+      await prefs.setString('fita.daily.completed', today);
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _openMultiplayer() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: cream,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => _MultiplayerLobby(
+        language: language,
+        onRoomReady: (room) async {
+          Navigator.of(sheetContext).pop();
+          await _launchMultiplayer(room);
+        },
+      ),
+    );
+  }
+
+  Future<void> _launchMultiplayer(MultiplayerRoom room) async {
+    await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(
+      level: room.seed % 10000 + 1,
+      seed: room.seed,
+      roomCode: room.code,
+      playerUid: room.playerUid,
+      sound: sound,
+      haptics: haptics,
+      backgroundTheme: backgroundTheme,
+      tileTheme: tileTheme,
+      animationLevel: animationLevel,
+      comboEffects: comboEffects,
+      language: language,
+    )));
+  }
 
   Future<void> _launchLevel(int selectedLevel) async {
     final won = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => GameScreen(
@@ -502,6 +578,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class GameScreen extends StatefulWidget {
   final int level;
+  final int? seed;
+  final String? dailyDate;
+  final String? roomCode;
+  final String? playerUid;
   final bool sound;
   final bool haptics;
   final int backgroundTheme;
@@ -509,7 +589,7 @@ class GameScreen extends StatefulWidget {
   final int animationLevel;
   final bool comboEffects;
   final String language;
-  const GameScreen({super.key, required this.level, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2, this.comboEffects = true, this.language = 'en'});
+  const GameScreen({super.key, required this.level, this.seed, this.dailyDate, this.roomCode, this.playerUid, this.sound = true, this.haptics = true, this.backgroundTheme = 0, this.tileTheme = 0, this.animationLevel = 2, this.comboEffects = true, this.language = 'en'});
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
@@ -664,7 +744,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     spots = MahjongRules.classicTurtleLayout();
     final solvableOrder = MahjongRules.classicRemovalOrder(spots);
     final symbols = _tileSets[widget.tileTheme.clamp(0, 3).toInt()].toList()
-      ..shuffle(Random(widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997));
+      ..shuffle(Random(widget.seed ?? (widget.level * 31 + DateTime.now().millisecondsSinceEpoch % 997)));
     tiles = List.filled(tileCount, '');
     // Four copies of each of the 36 faces: each face forms two matching pairs.
     for (var p = 0; p < pairs; p++) {
@@ -690,7 +770,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     // Offline burst; combo adds a brighter rising chime on top of the impact.
     const sampleRate = 11025;
     final sampleCount = comboLevel > 0 ? (comboLevel == 3 ? 8820 : comboLevel == 2 ? 7056 : 5512) : 3528;
-    final random = Random(41);
     final bytes = Uint8List(44 + sampleCount * 2);
     final header = ByteData.sublistView(bytes);
     void writeTag(int offset, String tag) {
@@ -713,18 +792,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     header.setUint32(40, sampleCount * 2, Endian.little);
     for (var i = 0; i < sampleCount; i++) {
       final t = i / sampleRate;
-      final envelope = (1 - exp(-t * 100)) * exp(-t * 9);
-      final frequency = comboLevel > 0 ? 190 + comboLevel * 18 - 80 * (t / .5) : 150 - 95 * (t / .32);
-      final body = sin(2 * pi * (frequency * t - 20 * t * t)) * .62;
-      final chimeEnvelope = comboLevel > 0 ? exp(-max(0, t - .06) * (6 - comboLevel)) * min(1.0, t * 24) : 0.0;
+      final duration = sampleCount / sampleRate;
+      final envelope = sin(pi * min(1.0, t / duration)).clamp(0.0, 1.0) *
+          exp(-t * (comboLevel == 0 ? 8.5 : 5.2));
+      final baseFrequency = comboLevel == 0 ? 520.0 : 620.0 + comboLevel * 75.0;
+      final fundamental = sin(2 * pi * baseFrequency * t);
+      final overtone = sin(2 * pi * baseFrequency * 2.01 * t) * .24;
+      final softBody = sin(2 * pi * (baseFrequency * .5) * t) * .12;
+      final chimeEnvelope = comboLevel > 0
+          ? exp(-max(0.0, t - .025) * (7.0 - comboLevel)) *
+              min(1.0, t * 35.0)
+          : 0.0;
       final chime = comboLevel > 0
-          ? (sin(2 * pi * (660 + comboLevel * 80) * t) * (.18 + comboLevel * .04) + sin(2 * pi * (990 + comboLevel * 110) * t) * (.12 + comboLevel * .04) + (comboLevel >= 2 ? sin(2 * pi * 1320 * t) * .10 : 0.0)) * chimeEnvelope
+          ? (sin(2 * pi * (880 + comboLevel * 95) * t) * .20 +
+              sin(2 * pi * (1320 + comboLevel * 100) * t) * .10) *
+              chimeEnvelope
           : 0.0;
-      final noise = (random.nextDouble() * 2 - 1) * .42;
-      final crackle = random.nextDouble() < .3
-          ? (random.nextDouble() * 2 - 1) * .28
-          : 0.0;
-      final sample = ((body + noise + crackle + chime) * envelope * 25000)
+      final sample = ((fundamental * .52 + overtone + softBody + chime) *
+              envelope * 18000)
           .round()
           .clamp(-32768, 32767)
           .toInt();
@@ -733,10 +818,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return bytes;
   }
 
+  static final Map<int, Uint8List> _soundCache = <int, Uint8List>{};
+
   Future<void> _playMatchBurst({int comboLevel = 0}) async {
     try {
+      final soundData = _soundCache.putIfAbsent(
+        comboLevel.clamp(0, 3),
+        () => _buildBurstWav(comboLevel: comboLevel.clamp(0, 3)),
+      );
       await _matchPlayer.stop();
-      await _matchPlayer.play(BytesSource(_buildBurstWav(comboLevel: comboLevel)));
+      await _matchPlayer.play(BytesSource(soundData), volume: .68);
     } catch (_) {
       // Sound is optional; matching and animations must work if audio is unavailable.
     }
