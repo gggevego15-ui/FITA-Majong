@@ -1606,7 +1606,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
-        child: Container(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 520),
+          curve: Curves.easeOutCubic,
+          builder: (context, progress, child) => Opacity(
+            opacity: progress.clamp(0.0, 1.0),
+            child: Transform.scale(
+              scale: .88 + .12 * Curves.easeOutBack.transform(progress),
+              child: child,
+            ),
+          ),
+          child: Container(
           decoration: BoxDecoration(
             color: cream,
             borderRadius: BorderRadius.circular(30),
@@ -1701,11 +1712,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
+        ),
       ),
     );
   }
 
-  void _hint() {
+    void _hint() {
     if (busy || finished) return;
     final open = List.generate(tiles.length, (i) => i)
       .where((i) => _availableInState(i, spots, removed)).toList();
