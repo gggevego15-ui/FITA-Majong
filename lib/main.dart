@@ -1113,6 +1113,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late List<String> tiles;
   late List<_TileSpot> spots;
   int burst = 0;
+  Offset _burstCenter = const Offset(.5, .52);
+  final GlobalKey _gameStackKey = GlobalKey();
   int matchStreak = 0;
   int bestComboStreak = 0;
   int activeComboLevel = 0;
@@ -1481,6 +1483,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _captureBurstCenter(int first, int second) {
+    final stackContext = _gameStackKey.currentContext;
+    final firstContext = _tileKeys[first]?.currentContext;
+    final secondContext = _tileKeys[second]?.currentContext;
+    if (stackContext == null || firstContext == null || secondContext == null) return;
+    final stackBox = stackContext.findRenderObject() as RenderBox?;
+    final firstBox = firstContext.findRenderObject() as RenderBox?;
+    final secondBox = secondContext.findRenderObject() as RenderBox?;
+    if (stackBox == null || firstBox == null || secondBox == null ||
+        !stackBox.hasSize || !firstBox.hasSize || !secondBox.hasSize) return;
+    final firstCenter = firstBox.localToGlobal(
+      Offset(firstBox.size.width / 2, firstBox.size.height / 2),
+    );
+    final secondCenter = secondBox.localToGlobal(
+      Offset(secondBox.size.width / 2, secondBox.size.height / 2),
+    );
+    final midpoint = stackBox.globalToLocal(Offset(
+      (firstCenter.dx + secondCenter.dx) / 2,
+      (firstCenter.dy + secondCenter.dy) / 2,
+    ));
+    _burstCenter = Offset(
+      (midpoint.dx / stackBox.size.width).clamp(0.0, 1.0).toDouble(),
+      (midpoint.dy / stackBox.size.height).clamp(0.0, 1.0).toDouble(),
+    );
+  }
+
   Future<void> _tap(int i) async {
     if (busy || finished || removed.contains(i)) return;
     if (!_availableInState(i, spots, removed)) {
@@ -1529,6 +1557,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         });
       }
       _feedback(success: true, comboLevel: widget.comboEffects ? comboLevel : 0);
+      _captureBurstCenter(first, i);
       setState(() {
         burst++;
         shaking = true;
@@ -1703,7 +1732,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         IconButton(tooltip: _tr(widget.language, 'hint'), onPressed: busy || finished ? null : _hint, icon: const Icon(Icons.lightbulb_outline_rounded)),
       ],
     ),
-    body: Stack(children: [
+    body: Stack(key: _gameStackKey, children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
       Positioned.fill(child: _AmbientParticles(theme: widget.backgroundTheme)),
       if (widget.roomCode != null)
@@ -1748,7 +1777,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), theme: widget.backgroundTheme, intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
+      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), center: _burstCenter, theme: widget.backgroundTheme, intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
       if (comboPopupLevel > 0) Positioned(
         top: 72,
         left: 0,
@@ -2110,7 +2139,8 @@ class _AmbientParticlePainter extends CustomPainter {
 class _BurstOverlay extends StatefulWidget {
   final bool intense;
   final int theme;
-  const _BurstOverlay({super.key, this.intense = true, this.theme = 0});
+  final Offset center;
+  const _BurstOverlay({super.key, this.intense = true, this.theme = 0, this.center = const Offset(.5, .52)});
   @override
   State<_BurstOverlay> createState() => _BurstOverlayState();
 }
@@ -2154,11 +2184,12 @@ class _BurstPainter extends CustomPainter {
   final List<_Particle> particles;
   final double progress;
   final bool intense;
-  const _BurstPainter(this.particles, this.progress, this.intense);
+  final Offset centerFraction;
+  const _BurstPainter(this.particles, this.progress, this.intense, this.centerFraction);
   @override
   void paint(Canvas canvas, Size size) {
     // A compact impact burst: one fast shockwave, a brief core flash, then flying debris.
-    final center = Offset(size.width / 2, size.height * .52);
+    final center = Offset(size.width * centerFraction.dx, size.height * centerFraction.dy);
     final waveProgress = Curves.easeOutCubic.transform(progress);
     final waveRadius = size.shortestSide * (.015 + waveProgress * (intense ? .20 : .14));
     final waveAlpha = ((1 - progress) * .62).clamp(0.0, 1.0).toDouble();
@@ -2195,7 +2226,7 @@ class _BurstPainter extends CustomPainter {
     }
   }
   @override
-  bool shouldRepaint(covariant _BurstPainter old) => old.progress != progress;
+  bool shouldRepaint(covariant _BurstPainter old) => old.progress != progress || old.centerFraction != centerFraction;
 }
 
 class _TileArtworkPainter extends CustomPainter {
