@@ -1291,6 +1291,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final TransformationController _boardController = TransformationController();
   bool _boardFitMode = false;
   late final AnimationController _boardFitController;
+  late final AnimationController _conveyorController;
+  bool get _hasConveyors => widget.level >= 4 && (widget.level % 4 == 0 || widget.level % 7 == 0);
+  bool _isConveyorTile(int index) => _hasConveyors && spots[index].layer == 0 && (spots[index].y == 4 || spots[index].y == 5);
+  double get _conveyorOffset => sin(_conveyorController.value * 2 * pi) * .92;
+  bool get _conveyorInWindow => sin(_conveyorController.value * 2 * pi).abs() < .22;
   Animation<Matrix4>? _boardFitAnimation;
   Timer? _ticker;
   StreamSubscription<Map<String, dynamic>?>? _roomSubscription;
@@ -1310,6 +1315,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
     _boardFitController = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
+    _conveyorController = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000));
+    if (_hasConveyors) {
+      _conveyorController.repeat();
+      _conveyorController.addListener(() { if (mounted) setState(() {}); });
+    }
     _boardFitController.addListener(() {
       final animation = _boardFitAnimation;
       if (animation != null && mounted) _boardController.value = animation.value;
@@ -1668,6 +1678,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _tap(int i) async {
     if (busy || finished || removed.contains(i)) return;
+    if (_isConveyorTile(i) && !_conveyorInWindow) {
+      if (widget.haptics) HapticFeedback.selectionClick();
+      ScaffoldMessenger.of(context)..hideCurrentSnackBar()..showSnackBar(SnackBar(
+        content: Text(widget.language == 'ru' ? 'Лови фишку в светящемся окне конвейера!' : 'Catch the tile in the glowing conveyor window!'),
+        duration: const Duration(milliseconds: 850), behavior: SnackBarBehavior.floating,
+      ));
+      return;
+    }
     if (!_availableInState(i, spots, removed)) {
       if (widget.haptics) HapticFeedback.selectionClick();
       return;
@@ -1995,6 +2013,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _flightController.dispose();
     _winController.dispose();
     _boardFitController.dispose();
+    _conveyorController.dispose();
     _boardController.dispose();
     _clock.stop();
     super.dispose();
@@ -2153,6 +2172,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             Text(finished ? _tr(widget.language, 'done') : _tr(widget.language, 'boardHelp'), style: const TextStyle(color: pine, fontWeight: FontWeight.w700)),
           ]),
         ),
+        if (_hasConveyors) ...[
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: const Color(0xFFDAF4E3).withValues(alpha: .94), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF66B889))),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.sync_rounded, color: Color(0xFF287A51), size: 17),
+              const SizedBox(width: 6),
+              Text(widget.language == 'ru' ? 'КОНВЕЙЕР · Лови в светящемся окне' : 'CONVEYOR · Catch in the glowing window',
+                style: const TextStyle(color: Color(0xFF287A51), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: .5)),
+            ]),
+          ),
+        ],
         const SizedBox(height: 12),
         Expanded(child: LayoutBuilder(builder: (context, constraints) {
           // Bias toward larger touch targets on phones; the board scrolls when needed.
@@ -2178,7 +2210,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             child: SizedBox(
             width: boardWidth,
             height: boardHeight,
-            child: Stack(clipBehavior: Clip.none, children: List.generate(tiles.length, (i) {
+            child: Stack(clipBehavior: Clip.none, children: [
+              if (_hasConveyors)
+                for (final laneY in const [4, 5])
+                  Positioned(
+                    left: 0, top: (laneY + 1) * tileHeight * .98 - tileHeight * .20,
+                    width: boardWidth, height: tileHeight * .98,
+                    child: CustomPaint(painter: _ConveyorPainter(phase: _conveyorController.value, catchWindow: _conveyorInWindow)),
+                  ),
+              ...List.generate(tiles.length, (i) {
               final spot = spots[i];
               final gone = removed.contains(i);
               final active = selected == i;
@@ -2187,7 +2227,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               final enabled = _availableInState(i, spots, removed);
               final tileKey = _tileKeys.putIfAbsent(i, () => GlobalKey());
               return Positioned(
-                left: spot.x * tileWidth * .98 + spot.layer * tileWidth * .12,
+                left: spot.x * tileWidth * .98 + spot.layer * tileWidth * .12 + (_isConveyorTile(i) ? _conveyorOffset * tileWidth : 0),
                 top: (spot.y + 1) * tileHeight * .98 - spot.layer * tileHeight * .20,
                 width: tileWidth,
                 height: tileHeight,
@@ -2213,7 +2253,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                 ),
               );
-            })),
+            }),
+            ]),
             ),
           ),
           Positioned(
@@ -2579,6 +2620,28 @@ class _TileArtworkPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _TileArtworkPainter oldDelegate) =>
       oldDelegate.seed != seed || oldDelegate.theme != theme || oldDelegate.highlighted != highlighted;
+}
+
+class _ConveyorPainter extends CustomPainter {
+  final double phase;
+  final bool catchWindow;
+  const _ConveyorPainter({required this.phase, required this.catchWindow});
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rail = Paint()..color = const Color(0xFF205F45).withValues(alpha: .65)..strokeWidth = 2;
+    final dash = Paint()..color = const Color(0xFFD8F6CF).withValues(alpha: .85)..strokeWidth = 3..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(0, 5), Offset(size.width, 5), rail);
+    canvas.drawLine(Offset(0, size.height - 5), Offset(size.width, size.height - 5), rail);
+    const spacing = 24.0;
+    final shift = (phase * spacing * 2) % spacing;
+    for (double x = -spacing + shift; x < size.width + spacing; x += spacing) {
+      canvas.drawLine(Offset(x, size.height * .5 - 4), Offset(x + 9, size.height * .5 + 4), dash);
+    }
+    final gatePaint = Paint()..color = (catchWindow ? const Color(0xFFFFFF9A) : const Color(0xFFECFFF2)).withValues(alpha: catchWindow ? .95 : .35)..style = PaintingStyle.stroke..strokeWidth = catchWindow ? 3 : 1.5;
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(size.width / 2, size.height / 2), width: 42, height: size.height - 8), const Radius.circular(8)), gatePaint);
+  }
+  @override
+  bool shouldRepaint(covariant _ConveyorPainter oldDelegate) => oldDelegate.phase != phase || oldDelegate.catchWindow != catchWindow;
 }
 
 class _GardenTile extends StatelessWidget {
