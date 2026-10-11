@@ -1292,10 +1292,39 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _boardFitMode = false;
   late final AnimationController _boardFitController;
   late final AnimationController _conveyorController;
-  bool get _hasConveyors => widget.level >= 4 && (widget.level % 4 == 0 || widget.level % 7 == 0);
-  bool _isConveyorTile(int index) => _hasConveyors && spots[index].layer == 0 && (spots[index].y == 4 || spots[index].y == 5);
-  double get _conveyorOffset => sin(_conveyorController.value * 2 * pi) * .92;
-  bool get _conveyorInWindow => sin(_conveyorController.value * 2 * pi).abs() < .22;
+  // Difficulty grows in readable stages; the classic tile-matching rules and
+  // four storage slots remain unchanged at every level.
+  int get _difficultyTier => widget.level < 4
+      ? 0
+      : widget.level < 10
+          ? 1
+          : widget.level < 25
+              ? 2
+              : widget.level < 100
+                  ? 3
+                  : 4;
+  String get _difficultyName {
+    const names = ['Garden calm', 'Soft breeze', 'Wandering wind', 'Wild currents', 'Master gust'];
+    const ruNames = ['Тихий сад', 'Лёгкий ветерок', 'Переменчивый ветер', 'Сильные потоки', 'Ветер мастера'];
+    final index = _difficultyTier;
+    return widget.language == 'ru' ? ruNames[index] : names[index];
+  }
+  List<int> get _conveyorRows => _difficultyTier >= 3
+      ? const [3, 4, 5, 6]
+      : const [4, 5];
+  bool get _hasConveyors {
+    if (_difficultyTier == 0) return false;
+    if (_difficultyTier == 1) return widget.level % 4 == 0 || widget.level % 7 == 0;
+    if (_difficultyTier == 2) return widget.level % 3 == 0 || widget.level % 4 == 0;
+    if (_difficultyTier == 3) return widget.level % 2 == 0 || widget.level % 3 == 0;
+    return true;
+  }
+  bool _isConveyorTile(int index) => _hasConveyors &&
+      spots[index].layer == 0 && _conveyorRows.contains(spots[index].y);
+  double get _conveyorOffset => sin(_conveyorController.value * 2 * pi) *
+      (_difficultyTier >= 3 ? 1.08 : .92);
+  bool get _conveyorInWindow => sin(_conveyorController.value * 2 * pi).abs() <
+      (_difficultyTier >= 4 ? .14 : _difficultyTier >= 3 ? .18 : .22);
   Animation<Matrix4>? _boardFitAnimation;
   Timer? _ticker;
   StreamSubscription<Map<String, dynamic>?>? _roomSubscription;
@@ -1315,7 +1344,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
     _winController = AnimationController(vsync: this, duration: const Duration(milliseconds: 850));
     _boardFitController = AnimationController(vsync: this, duration: const Duration(milliseconds: 420));
-    _conveyorController = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000));
+    _conveyorController = AnimationController(vsync: this, duration: Duration(milliseconds: widget.level >= 100 ? 2100 : widget.level >= 25 ? 2500 : 3000));
     if (_hasConveyors) {
       _conveyorController.repeat();
       _conveyorController.addListener(() { if (mounted) setState(() {}); });
@@ -2024,7 +2053,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     appBar: AppBar(
       backgroundColor: cream,
       foregroundColor: pine,
-      title: Text(widget.dailyDate != null ? 'FITA Majong · Daily' : 'FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900)),
+      title: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.dailyDate != null ? 'FITA Majong · Daily' : 'FITA Majong · ${widget.level}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          if (widget.dailyDate == null)
+            Text(_difficultyName, style: const TextStyle(fontSize: 10, color: pine, fontWeight: FontWeight.w700, letterSpacing: .3)),
+        ],
+      ),
       centerTitle: true,
       actions: [
         IconButton(tooltip: _tr(widget.language, 'undo'), onPressed: busy || _history.isEmpty ? null : _undo, icon: const Icon(Icons.undo_rounded)),
@@ -2212,7 +2249,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             height: boardHeight,
             child: Stack(clipBehavior: Clip.none, children: [
               if (_hasConveyors)
-                for (final laneY in const [4, 5])
+                for (final laneY in _conveyorRows)
                   Positioned(
                     left: 0, top: (laneY + 1) * tileHeight * .98 - tileHeight * .20,
                     width: boardWidth, height: tileHeight * .98,
