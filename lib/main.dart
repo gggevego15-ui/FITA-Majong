@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'game/mahjong_rules.dart';
@@ -13,7 +14,12 @@ import 'services/multiplayer_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AuthService.instance.initialize();
+  // Never leave the native launch screen waiting indefinitely for Firebase.
+  // Offline play can start immediately if initialization stalls.
+  await AuthService.instance.initialize().timeout(
+    const Duration(seconds: 4),
+    onTimeout: () {},
+  );
   runApp(const FitaMahjongApp());
 }
 
@@ -262,15 +268,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final AudioPlayer _musicPlayer = AudioPlayer();
-  Timer? _musicFadeTimer;
-  bool musicEnabled = true;
-  double _musicVolume = 0;
-  double _musicBaseVolume = .22;
-  bool _musicReady = false;
-
-  Uint8List _buildAmbientMusic() {
+Uint8List _buildAmbientMusicData(Object? _) {
     const rate = 22050;
     const duration = 12.0;
     final count = (rate * duration).round();
@@ -303,11 +301,21 @@ class _HomeScreenState extends State<HomeScreen> {
     return bytes;
   }
 
+class _HomeScreenState extends State<HomeScreen> {
+  final AudioPlayer _musicPlayer = AudioPlayer();
+  Timer? _musicFadeTimer;
+  bool musicEnabled = true;
+  double _musicVolume = 0;
+  double _musicBaseVolume = .22;
+  bool _musicReady = false;
+
   Future<void> _startMusic() async {
     try {
       await _musicPlayer.setReleaseMode(ReleaseMode.loop);
       await _musicPlayer.setVolume(0);
-      await _musicPlayer.play(BytesSource(_buildAmbientMusic()), volume: 0);
+      final musicBytes = await compute(_buildAmbientMusicData, null);
+      if (!mounted) return;
+      await _musicPlayer.play(BytesSource(musicBytes), volume: 0);
       _musicReady = true;
       _fadeMusicTo(musicEnabled ? _musicBaseVolume : 0);
       if (!musicEnabled) await _musicPlayer.pause();
