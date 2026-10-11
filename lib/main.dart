@@ -1497,8 +1497,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         hintA = null;
         hintB = null;
       });
-      // Keep the first-tap selection on the board itself. The overlay flight
-      // animation can briefly cover the game surface on some devices.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _flyTile(i));
       _feedback();
       return;
     }
@@ -2223,16 +2222,10 @@ class _GardenTile extends StatelessWidget {
         border: Border.all(color: borderColor, width: selected || hinted || wrong ? 2.5 : 1),
         boxShadow: selected || hinted || wrong ? [BoxShadow(color: pine.withValues(alpha: .18), blurRadius: 8, offset: const Offset(0, 3))] : const [],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
-          highlightColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-          child: Stack(children: [
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Stack(children: [
             Positioned(top: 5, left: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
             Positioned(bottom: 5, right: 5, child: Icon(Icons.circle, size: 4, color: borderColor.withValues(alpha: .7))),
             Center(child: SizedBox(
@@ -2257,7 +2250,6 @@ class _GardenTile extends StatelessWidget {
             if (hinted)
               const Positioned(right: 5, top: 4, child: Icon(Icons.auto_awesome_rounded, size: 14, color: leaf)),
           ]),
-        ),
       ),
     );
   }
