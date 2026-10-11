@@ -267,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? _musicFadeTimer;
   bool musicEnabled = true;
   double _musicVolume = 0;
+  double _musicBaseVolume = .22;
   bool _musicReady = false;
 
   Uint8List _buildAmbientMusic() {
@@ -308,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await _musicPlayer.setVolume(0);
       await _musicPlayer.play(BytesSource(_buildAmbientMusic()), volume: 0);
       _musicReady = true;
-      _fadeMusicTo(musicEnabled ? .22 : 0);
+      _fadeMusicTo(musicEnabled ? _musicBaseVolume : 0);
       if (!musicEnabled) await _musicPlayer.pause();
     } catch (_) {
       // Ambient music is optional; game play must never depend on audio.
@@ -330,6 +331,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _setMusicBaseVolume(double value) async {
+    final volume = value.clamp(0.0, 1.0).toDouble();
+    setState(() => _musicBaseVolume = volume);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('fita.music.volume', volume);
+    if (musicEnabled && _musicReady) _fadeMusicTo(volume);
+  }
+
   Future<void> _setMusicEnabled(bool enabled) async {
     setState(() => musicEnabled = enabled);
     final prefs = await SharedPreferences.getInstance();
@@ -340,7 +349,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (enabled) {
       await _musicPlayer.resume();
-      _fadeMusicTo(.22);
+      _fadeMusicTo(_musicBaseVolume);
     } else {
       _fadeMusicTo(0);
       Future<void>.delayed(const Duration(milliseconds: 800), () {
@@ -373,6 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     musicEnabled = prefs.getBool('fita.music.enabled') ?? true;
+    _musicBaseVolume = (prefs.getDouble('fita.music.volume') ?? .22).clamp(0.0, 1.0).toDouble();
     if (musicEnabled) await _startMusic();
     if (mounted) setState(() {});
   }
@@ -1060,6 +1070,35 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(language == 'ru' ? 'Фоновая музыка' : 'Ambient music'),
         subtitle: Text(language == 'ru' ? 'Спокойная музыка с плавным затуханием' : 'Calm music with smooth fades'),
         secondary: const Icon(Icons.music_note_rounded, color: pine),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.volume_down_rounded, color: pine, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text(language == 'ru' ? 'Громкость музыки' : 'Music volume')),
+                Text('${(_musicBaseVolume * 100).round()}%'),
+              ],
+            ),
+            Slider(
+              value: _musicBaseVolume,
+              min: 0,
+              max: 1,
+              divisions: 20,
+              activeColor: pine,
+              onChanged: (value) {
+                setState(() => _musicBaseVolume = value);
+                if (musicEnabled && _musicReady) _fadeMusicTo(value);
+                setSheet(() {});
+              },
+              onChangeEnd: (value) => _setMusicBaseVolume(value),
+            ),
+          ],
+        ),
       ),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'haptics')), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       SwitchListTile(value: comboEffects, onChanged: (v) async { setState(() => comboEffects = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setBool('fita.combo.effects', v); }, title: Text(_tr(language, 'comboEffects')), subtitle: Text(_tr(language, 'comboEffectsNote')), secondary: const Icon(Icons.bolt_rounded, color: pine)),
