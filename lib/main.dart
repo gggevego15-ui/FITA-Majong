@@ -263,6 +263,92 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final AudioPlayer _musicPlayer = AudioPlayer();
+  Timer? _musicFadeTimer;
+  bool musicEnabled = true;
+  double _musicVolume = 0;
+  bool _musicReady = false;
+
+  Uint8List _buildAmbientMusic() {
+    const rate = 22050;
+    const duration = 12.0;
+    final count = (rate * duration).round();
+    final bytes = Uint8List(44 + count * 2);
+    final h = ByteData.sublistView(bytes);
+    void tag(int offset, String value) {
+      for (var i = 0; i < value.length; i++) { bytes[offset + i] = value.codeUnitAt(i); }
+    }
+    tag(0, 'RIFF'); h.setUint32(4, bytes.length - 8, Endian.little);
+    tag(8, 'WAVE'); tag(12, 'fmt '); h.setUint32(16, 16, Endian.little);
+    h.setUint16(20, 1, Endian.little); h.setUint16(22, 1, Endian.little);
+    h.setUint32(24, rate, Endian.little); h.setUint32(28, rate * 2, Endian.little);
+    h.setUint16(32, 2, Endian.little); h.setUint16(34, 16, Endian.little);
+    tag(36, 'data'); h.setUint32(40, count * 2, Endian.little);
+    const notes = <double>[130.81, 164.81, 196.00, 261.63, 329.63];
+    for (var i = 0; i < count; i++) {
+      final t = i / rate;
+      final edge = (min(t, duration - t) / 1.2).clamp(0.0, 1.0).toDouble();
+      final fade = edge * edge * (3 - 2 * edge);
+      var sample = 0.0;
+      for (var n = 0; n < notes.length; n++) {
+        final wobble = 1 + .0015 * sin(2 * pi * .08 * t + n);
+        final tone = sin(2 * pi * notes[n] * wobble * t);
+        final overtone = sin(2 * pi * notes[n] * 2 * wobble * t) * .12;
+        sample += (tone + overtone) * (n < 3 ? .16 : .07);
+      }
+      sample *= fade * (.72 + .08 * sin(2 * pi * .17 * t));
+      h.setInt16(44 + i * 2, (sample * 4200).round().clamp(-32768, 32767), Endian.little);
+    }
+    return bytes;
+  }
+
+  Future<void> _startMusic() async {
+    try {
+      await _musicPlayer.setReleaseMode(ReleaseMode.loop);
+      await _musicPlayer.setVolume(0);
+      await _musicPlayer.play(BytesSource(_buildAmbientMusic()), volume: 0);
+      _musicReady = true;
+      _fadeMusicTo(musicEnabled ? .22 : 0);
+      if (!musicEnabled) await _musicPlayer.pause();
+    } catch (_) {
+      // Ambient music is optional; game play must never depend on audio.
+    }
+  }
+
+  void _fadeMusicTo(double target) {
+    _musicFadeTimer?.cancel();
+    const steps = 16;
+    var step = 0;
+    final start = _musicVolume;
+    _musicFadeTimer = Timer.periodic(const Duration(milliseconds: 45), (timer) {
+      step++;
+      final p = (step / steps).clamp(0.0, 1.0).toDouble();
+      final eased = p * p * (3 - 2 * p);
+      _musicVolume = start + (target - start) * eased;
+      unawaited(_musicPlayer.setVolume(_musicVolume));
+      if (step >= steps) timer.cancel();
+    });
+  }
+
+  Future<void> _setMusicEnabled(bool enabled) async {
+    setState(() => musicEnabled = enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fita.music.enabled', enabled);
+    if (!_musicReady) {
+      if (enabled) await _startMusic();
+      return;
+    }
+    if (enabled) {
+      await _musicPlayer.resume();
+      _fadeMusicTo(.22);
+    } else {
+      _fadeMusicTo(0);
+      Future<void>.delayed(const Duration(milliseconds: 800), () {
+        if (mounted && !musicEnabled) unawaited(_musicPlayer.pause());
+      });
+    }
+  }
+
   int level = 1;
   bool sound = true;
   bool haptics = true;
@@ -280,6 +366,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _restoreProgress();
+    _restoreMusic();
+  }
+
+  Future<void> _restoreMusic() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    musicEnabled = prefs.getBool('fita.music.enabled') ?? true;
+    if (musicEnabled) await _startMusic();
+    if (mounted) setState(() {});
   }
 
   Future<void> _restoreProgress() async {
@@ -959,6 +1054,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 12),
       SwitchListTile(value: sound, onChanged: (v) { setState(() => sound = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'sound')), secondary: const Icon(Icons.volume_up_rounded, color: pine)),
+      SwitchListTile(
+        value: musicEnabled,
+        onChanged: (v) async { await _setMusicEnabled(v); setSheet(() {}); },
+        title: Text(language == 'ru' ? 'Фоновая музыка' : 'Ambient music'),
+        subtitle: Text(language == 'ru' ? 'Спокойная музыка с плавным затуханием' : 'Calm music with smooth fades'),
+        secondary: const Icon(Icons.music_note_rounded, color: pine),
+      ),
       SwitchListTile(value: haptics, onChanged: (v) { setState(() => haptics = v); setSheet(() {}); _saveProgress(); }, title: Text(_tr(language, 'haptics')), secondary: const Icon(Icons.vibration_rounded, color: pine)),
       SwitchListTile(value: comboEffects, onChanged: (v) async { setState(() => comboEffects = v); setSheet(() {}); final p = await SharedPreferences.getInstance(); await p.setBool('fita.combo.effects', v); }, title: Text(_tr(language, 'comboEffects')), subtitle: Text(_tr(language, 'comboEffectsNote')), secondary: const Icon(Icons.bolt_rounded, color: pine)),
       const Divider(height: 20),
