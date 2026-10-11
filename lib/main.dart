@@ -1133,7 +1133,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final List<_GameSnapshot> _history = <_GameSnapshot>[];
   late final AnimationController _winController;
   late final AnimationController _flightController;
-  final GlobalKey _firstSlotKey = GlobalKey();
+  final List<GlobalKey> _slotKeys = List.generate(4, (_) => GlobalKey());
+  final List<int?> storageSlots = List<int?>.filled(4, null);
   final Map<int, GlobalKey> _tileKeys = <int, GlobalKey>{};
   OverlayEntry? _flightEntry;
   late final Stopwatch _clock;
@@ -1314,10 +1315,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   bool _availableInState(int index, List<_TileSpot> layout, Set<int> gone) =>
       MahjongRules.isAvailable(index, layout, gone);
 
-  void _flyTile(int index) {
+  void _flyTile(int index, {int slot = 0}) {
     if (widget.animationLevel == 0 || !mounted) return;
     final sourceContext = _tileKeys[index]?.currentContext;
-    final targetContext = _firstSlotKey.currentContext;
+    final targetContext = _slotKeys[slot.clamp(0, 3)].currentContext;
     if (sourceContext == null || targetContext == null) return;
     final sourceBox = sourceContext.findRenderObject() as RenderBox?;
     final targetBox = targetContext.findRenderObject() as RenderBox?;
@@ -1381,6 +1382,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       tiles[solvableOrder[p * 2 + 1]] = symbol;
     }
     removed.clear();
+    storageSlots.fillRange(0, storageSlots.length, null);
     _history.clear();
     selected = null;
     mismatch = null;
@@ -1515,22 +1517,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (widget.haptics) HapticFeedback.selectionClick();
       return;
     }
-    if (selected == i) {
-      setState(() => selected = null);
-      return;
-    }
-    if (selected == null) {
-      setState(() {
-        selected = i;
-        hintA = null;
-        hintB = null;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _flyTile(i));
-      _feedback();
+
+    final matchingSlot = storageSlots.indexWhere(
+      (stored) => stored != null && tiles[stored] == tiles[i],
+    );
+    final freeSlot = storageSlots.indexWhere((stored) => stored == null);
+    if (matchingSlot < 0 && freeSlot < 0) {
+      _finishLoss();
       return;
     }
 
-    final first = selected!;
     _history.add(_GameSnapshot(
       removed: Set<int>.from(removed),
       selected: selected,
@@ -1538,13 +1534,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       pairs: pairs,
       hintA: hintA,
       hintB: hintB,
+      storageSlots: List<int?>.from(storageSlots),
     ));
+    final targetSlot = matchingSlot >= 0 ? matchingSlot : freeSlot;
+    if (matchingSlot >= 0) _captureBurstCenter(i, storageSlots[matchingSlot]!);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _flyTile(i, slot: targetSlot));
+
     setState(() {
       moves++;
       hintA = null;
       hintB = null;
+      selected = null;
+      removed.add(i);
+      if (matchingSlot >= 0) {
+        storageSlots[matchingSlot] = null;
+        pairs--;
+      } else {
+        storageSlots[freeSlot] = i;
+      }
     });
-    if (tiles[first] == tiles[i]) {
+
+    if (matchingSlot >= 0) {
       matchStreak++;
       _recordComboStreak();
       final comboLevel = matchStreak == 10 ? 3 : matchStreak == 5 ? 2 : matchStreak == 3 ? 1 : 0;
@@ -1557,17 +1567,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         });
       }
       _feedback(success: true, comboLevel: widget.comboEffects ? comboLevel : 0);
-      _captureBurstCenter(first, i);
       setState(() {
         burst++;
         shaking = true;
-        removed.add(first);
-        removed.add(i);
-        selected = null;
-        pairs--;
       });
       if (pairs > 0) unawaited(_syncRoomProgress());
-      Future.delayed(const Duration(milliseconds: 420), () { if (mounted) setState(() => shaking = false); });
+      Future.delayed(const Duration(milliseconds: 420), () {
+        if (mounted) setState(() => shaking = false);
+      });
       if (pairs == 0) {
         finished = true;
         unawaited(_syncRoomProgress());
@@ -1581,18 +1588,42 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       comboPopupLevel = 0;
       _comboPopupTimer?.cancel();
       _feedback();
-      setState(() {
-        mismatch = i;
-        busy = true;
-      });
-      await Future.delayed(Duration(milliseconds: widget.animationLevel == 0 ? 220 : 420));
-      if (!mounted) return;
-      setState(() {
-        mismatch = null;
-        selected = null;
-        busy = false;
-      });
+      if (storageSlots.every((stored) => stored != null)) _finishLoss();
     }
+  }
+
+  void _finishLoss() {
+    if (finished || !mounted) return;
+    setState(() {
+      finished = true;
+      selected = null;
+      busy = false;
+    });
+    _clock.stop();
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: cream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: const Icon(Icons.sentiment_dissatisfied_rounded, size: 44, color: Color(0xFFD77B66)),
+        title: const Text('Игра окончена', textAlign: TextAlign.center,
+          style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
+        content: const Text('Все 4 квадрата заняты фишками без пары. Попробуй ещё раз!',
+          textAlign: TextAlign.center),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              setState(_newBoard);
+            },
+            child: const Text('Начать заново'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _hint() {
@@ -1626,6 +1657,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       pairs = previous.pairs;
       hintA = previous.hintA;
       hintB = previous.hintB;
+      storageSlots
+        ..clear()
+        ..addAll(previous.storageSlots);
       mismatch = null;
       finished = false;
     });
@@ -1852,9 +1886,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       duration: const Duration(milliseconds: 300),
                       transitionBuilder: (child, animation) => ScaleTransition(scale: CurvedAnimation(parent: animation, curve: Curves.elasticOut), child: FadeTransition(opacity: animation, child: child)),
                       child: Text(
-                        slot == 0 && selected != null ? tiles[selected!] : slot == 1 && hintA != null ? tiles[hintA!] : slot == 2 && hintB != null ? tiles[hintB!] : ['✦', '✧', '✦', '✧'][slot],
-                        key: ValueKey('${slot}_${slot == 0 ? selected : slot == 1 ? hintA : slot == 2 ? hintB : 0}'),
-                        style: TextStyle(fontSize: slot == 0 && selected != null ? 30 : 24, color: pine, fontWeight: FontWeight.w800),
+                        storageSlots[slot] != null ? tiles[storageSlots[slot]!] : ['✦', '✧', '✦', '✧'][slot],
+                        key: ValueKey('${slot}_${storageSlots[slot] ?? -1}'),
+                        style: TextStyle(fontSize: storageSlots[slot] != null ? 30 : 24, color: pine, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),
@@ -2054,6 +2088,7 @@ class _GameSnapshot {
   final int pairs;
   final int? hintA;
   final int? hintB;
+  final List<int?> storageSlots;
 
   const _GameSnapshot({
     required this.removed,
@@ -2062,6 +2097,7 @@ class _GameSnapshot {
     required this.pairs,
     required this.hintA,
     required this.hintB,
+    required this.storageSlots,
   });
 }
 
