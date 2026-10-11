@@ -1318,7 +1318,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _flyTile(int index, {int slot = 0}) {
     if (widget.animationLevel == 0 || !mounted) return;
     final sourceContext = _tileKeys[index]?.currentContext;
-    final targetContext = _slotKeys[slot.clamp(0, 3)].currentContext;
+    final targetContext = _slotKeys[slot.clamp(0, 3).toInt()].currentContext;
     if (sourceContext == null || targetContext == null) return;
     final sourceBox = sourceContext.findRenderObject() as RenderBox?;
     final targetBox = targetContext.findRenderObject() as RenderBox?;
