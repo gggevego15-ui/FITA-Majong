@@ -1705,6 +1705,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ),
     body: Stack(children: [
       Positioned.fill(child: NatureBackdrop(theme: widget.backgroundTheme)),
+      Positioned.fill(child: _AmbientParticles(theme: widget.backgroundTheme)),
       if (widget.roomCode != null)
         Positioned(
           top: 6,
@@ -1747,7 +1748,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
+      if (burst > 0) Positioned.fill(child: _BurstOverlay(key: ValueKey(burst), theme: widget.backgroundTheme, intense: widget.animationLevel == 2 || activeComboLevel >= 2)),
       if (comboPopupLevel > 0) Positioned(
         top: 72,
         left: 0,
@@ -2037,9 +2038,79 @@ class _GameSnapshot {
 
 typedef _TileSpot = TileSpot;
 
+class _AmbientParticles extends StatefulWidget {
+  final int theme;
+  const _AmbientParticles({required this.theme});
+  @override
+  State<_AmbientParticles> createState() => _AmbientParticlesState();
+}
+
+class _AmbientParticlesState extends State<_AmbientParticles> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_AmbientDot> _dots;
+  @override
+  void initState() {
+    super.initState();
+    final random = Random(7319);
+    _dots = List.generate(22, (_) => _AmbientDot(
+      x: random.nextDouble(),
+      y: random.nextDouble(),
+      radius: 0.7 + random.nextDouble() * 1.35,
+      speed: 0.012 + random.nextDouble() * 0.026,
+      phase: random.nextDouble() * pi * 2,
+    ));
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 18))..repeat();
+  }
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) => CustomPaint(
+        painter: _AmbientParticlePainter(_dots, _controller.value, widget.theme),
+      ),
+    ),
+  );
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+}
+
+class _AmbientDot {
+  final double x, y, radius, speed, phase;
+  const _AmbientDot({required this.x, required this.y, required this.radius, required this.speed, required this.phase});
+}
+
+class _AmbientParticlePainter extends CustomPainter {
+  final List<_AmbientDot> dots;
+  final double progress;
+  final int theme;
+  const _AmbientParticlePainter(this.dots, this.progress, this.theme);
+  static const _palettes = <List<Color>>[
+    [Color(0xFF729B72), Color(0xFFFFD79A), Color(0xFFB5D9C2)],
+    [Color(0xFFB65F8A), Color(0xFFFFC7A8), Color(0xFF9D83B9)],
+    [Color(0xFF72CFC0), Color(0xFF9CCBFF), Color(0xFFC8A6F5)],
+    [Color(0xFF00C9A7), Color(0xFF8A80FF), Color(0xFFFFC857)],
+  ];
+  @override
+  void paint(Canvas canvas, Size size) {
+    final palette = _palettes[theme.clamp(0, 3).toInt()];
+    for (var i = 0; i < dots.length; i++) {
+      final dot = dots[i];
+      final drift = (progress * dot.speed * 18 + dot.y) % 1.0;
+      final sway = sin(progress * pi * 2 + dot.phase) * 8;
+      final twinkle = .10 + ((sin(progress * pi * 2 + dot.phase) + 1) / 2) * .16;
+      final point = Offset(dot.x * size.width + sway, (1 - drift) * size.height);
+      final paint = Paint()..color = palette[i % palette.length].withValues(alpha: twinkle);
+      canvas.drawCircle(point, dot.radius, paint);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant _AmbientParticlePainter old) => old.progress != progress || old.theme != theme;
+}
+
 class _BurstOverlay extends StatefulWidget {
   final bool intense;
-  const _BurstOverlay({super.key, this.intense = true});
+  final int theme;
+  const _BurstOverlay({super.key, this.intense = true, this.theme = 0});
   @override
   State<_BurstOverlay> createState() => _BurstOverlayState();
 }
@@ -2049,80 +2120,82 @@ class _BurstOverlayState extends State<_BurstOverlay> with SingleTickerProviderS
   @override
   void initState() {
     super.initState();
-    final r = Random();
-    _particles = List.generate(widget.intense ? 34 : 16, (_) => _Particle(
-      angle: r.nextDouble() * pi * 2, distance: 55 + r.nextDouble() * 190,
-      size: 5 + r.nextDouble() * 10,
-      color: [const Color(0xFFFF4D8D), const Color(0xFFFFC857), const Color(0xFF00C9A7), const Color(0xFF7B61FF), Colors.white][r.nextInt(5)],
+    final random = Random();
+    _particles = List.generate(widget.intense ? 42 : 28, (_) => _Particle(
+      angle: random.nextDouble() * pi * 2,
+      distance: 70 + random.nextDouble() * 240,
+      size: 1.8 + random.nextDouble() * (widget.intense ? 4.0 : 2.8),
+      color: _palette[widget.theme.clamp(0, 3).toInt()][random.nextInt(4)],
+      delay: random.nextDouble() * .16,
+      spin: (random.nextDouble() - .5) * 8,
     ));
-    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: widget.intense ? 850 : 500))..forward();
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: widget.intense ? 620 : 480))..forward();
   }
+  static const _palette = <List<Color>>[
+    [Color(0xFFFFD79A), Color(0xFF8FBF91), Color(0xFFB5D9C2), Colors.white],
+    [Color(0xFFFF78AE), Color(0xFFFFC7A8), Color(0xFFB78AD6), Colors.white],
+    [Color(0xFF72CFC0), Color(0xFF9CCBFF), Color(0xFFC8A6F5), Colors.white],
+    [Color(0xFF00C9A7), Color(0xFF8A80FF), Color(0xFFFFC857), Colors.white],
+  ];
   @override
-  Widget build(BuildContext context) => IgnorePointer(child: AnimatedBuilder(animation: _controller, builder: (_, __) => CustomPaint(painter: _BurstPainter(_particles, _controller.value))));
+  Widget build(BuildContext context) => IgnorePointer(child: AnimatedBuilder(
+    animation: _controller,
+    builder: (_, __) => CustomPaint(painter: _BurstPainter(_particles, _controller.value, widget.intense)),
+  ));
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
 }
 class _Particle {
-  final double angle, distance, size;
+  final double angle, distance, size, delay, spin;
   final Color color;
-  const _Particle({required this.angle, required this.distance, required this.size, required this.color});
+  const _Particle({required this.angle, required this.distance, required this.size, required this.color, required this.delay, required this.spin});
 }
 class _BurstPainter extends CustomPainter {
   final List<_Particle> particles;
   final double progress;
-  _BurstPainter(this.particles, this.progress);
+  final bool intense;
+  const _BurstPainter(this.particles, this.progress, this.intense);
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final eased = Curves.easeOutCubic.transform(progress);
-    // Three glowing shock rings expand and fade as the match resolves.
-    for (var ring = 0; ring < 3; ring++) {
-      final delay = ring * .13;
-      final t = ((progress - delay) / (1 - delay)).clamp(0.0, 1.0);
-      final radius = size.shortestSide * (.035 + t * (.23 + ring * .035));
-      final alpha = ((1 - t) * (progress < delay ? 0 : 1)).clamp(0.0, 1.0).toDouble();
-      final color = [const Color(0xFFFFD166), const Color(0xFFFF4D8D), const Color(0xFF7B61FF)][ring];
-      canvas.drawCircle(center, radius, Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 7 * (1 - t) + 1.5
-        ..color = color.withValues(alpha: alpha)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5));
-      canvas.drawCircle(center, radius, Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6
-        ..color = Colors.white.withValues(alpha: alpha * .9));
+    // A compact impact burst: one fast shockwave, a brief core flash, then flying debris.
+    final center = Offset(size.width / 2, size.height * .52);
+    final waveProgress = Curves.easeOutCubic.transform(progress);
+    final waveRadius = size.shortestSide * (.015 + waveProgress * (intense ? .20 : .14));
+    final waveAlpha = ((1 - progress) * .62).clamp(0.0, 1.0).toDouble();
+    canvas.drawCircle(center, waveRadius, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = (1 - progress) * (intense ? 10 : 7) + 1
+      ..color = const Color(0xFFFFE7A8).withValues(alpha: waveAlpha));
+    // Short-lived hot center gives a punchy impact without washing out the whole screen.
+    final flash = (1 - (progress / .18)).clamp(0.0, 1.0).toDouble();
+    if (flash > 0) {
+      canvas.drawCircle(center, 10 + 26 * (1 - flash), Paint()
+        ..color = Colors.white.withValues(alpha: flash * .72)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12));
     }
-    // Bright tapered rays make the impact feel snappy without obscuring the board.
-    final rayPaint = Paint()..strokeCap = StrokeCap.round;
-    for (var ray = 0; ray < 18; ray++) {
-      final angle = ray * pi / 9 + .12;
-      final inner = size.shortestSide * (.035 + eased * .08);
-      final outer = size.shortestSide * (.06 + eased * .22);
-      rayPaint
-        ..strokeWidth = ray.isEven ? 3.2 : 1.8
-        ..color = (ray.isEven ? const Color(0xFFFFE7A8) : Colors.white)
-            .withValues(alpha: ((1 - progress) * .95).clamp(0.0, 1.0).toDouble());
-      canvas.drawLine(
-        center + Offset(cos(angle) * inner, sin(angle) * inner),
-        center + Offset(cos(angle) * outer, sin(angle) * outer),
-        rayPaint,
-      );
-    }
-    for (final p in particles) {
-      final point = center + Offset(cos(p.angle) * p.distance * eased, sin(p.angle) * p.distance * eased);
-      final alpha = (1 - progress).clamp(0.0, 1.0).toDouble();
-      final particlePaint = Paint()..color = p.color.withValues(alpha: alpha);
-      canvas.drawCircle(point, p.size * (1 - progress * .55), particlePaint);
-      // Each spark gets a tiny luminous tail.
-      final tail = Offset(cos(p.angle) * p.size * 1.8, sin(p.angle) * p.size * 1.8);
-      canvas.drawLine(point, point - tail, Paint()
-        ..color = p.color.withValues(alpha: alpha * .65)
-        ..strokeWidth = max(1.0, p.size * .22)
-        ..strokeCap = StrokeCap.round);
+    for (final particle in particles) {
+      final local = ((progress - particle.delay) / (1 - particle.delay)).clamp(0.0, 1.0).toDouble();
+      final eased = Curves.easeOutQuart.transform(local);
+      final angle = particle.angle + particle.spin * local;
+      final point = center + Offset(cos(angle) * particle.distance * eased, sin(angle) * particle.distance * eased + 26 * local * local);
+      final alpha = ((1 - local) * (local == 0 ? 0 : 1)).clamp(0.0, 1.0).toDouble();
+      final radius = particle.size * (1 - local * .62);
+      final paint = Paint()..color = particle.color.withValues(alpha: alpha);
+      // Angular fragments feel like a tiny impact rather than a celebratory firework.
+      final tangent = Offset(-sin(angle), cos(angle));
+      final radial = Offset(cos(angle), sin(angle));
+      final length = radius * (intense ? 3.4 : 2.5);
+      final path = Path()
+        ..moveTo(point.dx + radial.dx * length, point.dy + radial.dy * length)
+        ..lineTo(point.dx + tangent.dx * radius, point.dy + tangent.dy * radius)
+        ..lineTo(point.dx - radial.dx * length * .7, point.dy - radial.dy * length * .7)
+        ..close();
+      canvas.drawPath(path, paint);
+      canvas.drawCircle(point, max(.7, radius * .35), Paint()..color = Colors.white.withValues(alpha: alpha * .7));
     }
   }
   @override
-  bool shouldRepaint(covariant _BurstPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _BurstPainter old) => old.progress != progress;
 }
 
 class _TileArtworkPainter extends CustomPainter {
