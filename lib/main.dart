@@ -1497,7 +1497,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         hintA = null;
         hintB = null;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _flyTile(i));
+      // Keep the first-tap selection on the board itself. The overlay flight
+      // animation can briefly cover the game surface on some devices.
       _feedback();
       return;
     }
