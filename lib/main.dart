@@ -1401,12 +1401,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     // never has to synthesize audio on the interaction path.
     const sampleRate = 22050;
     final duration = comboLevel == 3
-        ? .54
+        ? .95
         : comboLevel == 2
-            ? .44
+            ? .82
             : comboLevel == 1
-                ? .36
-                : .28;
+                ? .68
+                : .56;
     final sampleCount = (sampleRate * duration).round();
     final bytes = Uint8List(44 + sampleCount * 2);
     final header = ByteData.sublistView(bytes);
@@ -1438,8 +1438,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       for (var note = 0; note < notes.length; note++) {
         final noteTime = t - offsets[note];
         if (noteTime < 0) continue;
-        final envelope = (1 - exp(-noteTime * 150)) *
-            exp(-noteTime * (comboLevel == 0 ? 12.5 : 7.8));
+        // Give every note a gentle attack and a real release tail. The
+        // previous fast exponential decay made the chord sound clipped.
+        final attack = (noteTime / .045).clamp(0.0, 1.0);
+        final release = ((duration - t) / .18).clamp(0.0, 1.0);
+        final smoothAttack = attack * attack * (3 - 2 * attack);
+        final smoothRelease = release * release * (3 - 2 * release);
+        final envelope = smoothAttack * smoothRelease *
+            exp(-noteTime * (comboLevel == 0 ? 3.8 : 2.8));
         final fundamental = sin(2 * pi * notes[note] * noteTime);
         final overtone = sin(2 * pi * notes[note] * 2.76 * noteTime) * .12;
         sample += (fundamental + overtone) * envelope *
