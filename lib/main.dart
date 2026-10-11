@@ -1091,6 +1091,14 @@ class _HomeScreenState extends State<HomeScreen> {
     ])),
   )));
 
+  @override
+  void dispose() {
+    _musicFadeTimer?.cancel();
+    unawaited(_musicPlayer.stop());
+    unawaited(_musicPlayer.dispose());
+    super.dispose();
+  }
+
   void _message(BuildContext context, String message) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }
 
