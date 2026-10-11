@@ -1603,25 +1603,104 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: cream,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        icon: const Icon(Icons.sentiment_dissatisfied_rounded, size: 44, color: Color(0xFFD77B66)),
-        title: const Text('Игра окончена', textAlign: TextAlign.center,
-          style: TextStyle(color: pine, fontWeight: FontWeight.w900)),
-        content: const Text('Все 4 квадрата заняты фишками без пары. Попробуй ещё раз!',
-          textAlign: TextAlign.center),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: pine, foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              setState(_newBoard);
-            },
-            child: const Text('Начать заново'),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cream,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: const Color(0xFFE6C99A), width: 1.5),
+            boxShadow: [
+              BoxShadow(color: pine.withValues(alpha: .22), blurRadius: 30, offset: const Offset(0, 14)),
+            ],
           ),
-        ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Stack(
+              children: [
+                Positioned(top: -34, right: -24, child: Icon(Icons.spa_rounded, size: 150, color: leaf.withValues(alpha: .09))),
+                Positioned(bottom: -35, left: -22, child: Icon(Icons.auto_awesome_rounded, size: 140, color: const Color(0xFFD58D59).withValues(alpha: .10))),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFE5B7), Color(0xFFE7B77C)],
+                          ),
+                          boxShadow: [BoxShadow(color: const Color(0xFFD58D59).withValues(alpha: .28), blurRadius: 18, offset: const Offset(0, 7))],
+                        ),
+                        child: const Icon(Icons.grid_view_rounded, size: 42, color: pine),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Квадраты заполнены',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 23, height: 1.15, color: pine, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Все 4 квадрата заняты фишками без пары. Освободи место, чтобы продолжить!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, height: 1.45, color: pine.withValues(alpha: .82), fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: List.generate(4, (slot) => Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(right: slot == 3 ? 0 : 6),
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF8E9),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: const Color(0xFFE3CDA8)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    storageSlots[slot] == null ? '✦' : tiles[storageSlots[slot]!],
+                                    style: const TextStyle(fontSize: 27, color: pine, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )),
+                      ),
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: pine,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          ),
+                          icon: const Icon(Icons.replay_rounded),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            setState(_newBoard);
+                          },
+                          label: const Text('Начать заново', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1872,7 +1951,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               child: AspectRatio(
                 aspectRatio: 1,
                 child: AnimatedContainer(
-                  key: slot == 0 ? _firstSlotKey : null,
+                  key: _slotKeys[slot],
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutBack,
                   decoration: BoxDecoration(
@@ -2206,7 +2285,7 @@ class _BurstOverlayState extends State<_BurstOverlay> with SingleTickerProviderS
   @override
   Widget build(BuildContext context) => IgnorePointer(child: AnimatedBuilder(
     animation: _controller,
-    builder: (_, __) => CustomPaint(painter: _BurstPainter(_particles, _controller.value, widget.intense)),
+    builder: (_, __) => CustomPaint(painter: _BurstPainter(_particles, _controller.value, widget.intense, widget.center)),
   ));
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
